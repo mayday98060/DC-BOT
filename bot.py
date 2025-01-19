@@ -760,7 +760,7 @@ async def 歌單(interaction: discord.Interaction):
 async def 入道(interaction: discord.Interaction):
     user_id = interaction.user.id
 
-    conn = my_database.get_conn()
+    conn = db.get_conn()
     cursor = conn.cursor()
 
     try:
