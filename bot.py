@@ -1,20 +1,19 @@
+import os
+import db
+import sys
+import json
+import math
+import random
+import psutil
+import atexit
+import locale
 import discord
 import sqlite3
-import datetime
-import random
 import asyncio
-import os
-import psutil
-import sys
-import subprocess
-import atexit
-import json
+import datetime
 import calendar
-import locale
 import requests
-import math
-import my_database
-from replit import db
+import subprocess
 from queue import Queue
 from typing import Optional
 from langdetect import detect
@@ -45,21 +44,19 @@ user_stats = {}
 battle_states = {}
 profession_image_folder = "images_mafia42"
 skill_icon_folder = "icons_mafia42"
-my_database.init_db()
-conn = my_database.get_conn()
-cursor = my_database.get_cursor()
+db.init_db()
+conn = db.get_conn()
+cursor = db.get_cursor()
 
+#顯示機器人名稱，並定義在discord上的狀態
 @bot.event
 async def on_ready():
     print(f"目前登入身份 --> {bot.user}")
-    game = discord.Game('衝破空間壁障中~')
+    activity=discord.CustomActivity("衝破空間壁障中~")
     #online,offline,idle,dnd,invisible
-    await bot.change_presence(status=discord.Status.online, activity=game)
+    await bot.change_presence(status=discord.Status.online, activity=activity)
     await bot.tree.sync()
-    bot.tree.remove_command("say")
 
-def restart_program():
-    os.execv(sys.executable, ['python'] + sys.argv)
 
 @bot.tree.command(name="help", description="指令列表")
 async def slash_help(interaction: discord.Interaction):
@@ -534,7 +531,7 @@ async def slash_重啟(interaction: discord.Interaction):
         atexit.register(clean_up_cache)
 
         await interaction.followup.send("世界意志重啟成功！", ephemeral=True)
-        subprocess.Popen([sys.executable, "main.py"])
+        subprocess.Popen([sys.executable, "bot.py"])
         await bot.close()
     else:
         await interaction.response.send_message("世界基礎規則，凡人無法撼動。", ephemeral=True)
