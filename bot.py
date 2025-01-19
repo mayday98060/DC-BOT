@@ -760,30 +760,19 @@ async def 歌單(interaction: discord.Interaction):
 async def 入道(interaction: discord.Interaction):
     user_id = interaction.user.id
 
-    conn = db.get_conn()
-    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+    existing_user = cursor.fetchone()
 
-    try:
-        cursor.execute("""
-            INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, current_health, cultivation, quench) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id) DO NOTHING;
-        """, (user_id, 0, '凡人', '一層', '凡人肉體', '一階', 20, 100, 10, 100, 0, 0))
-
+    if existing_user:
+        await interaction.response.send_message("你已經是修煉者，無需再次入道。")
+    else:
+        cursor.execute(
+            """INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, cultivation, quench) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, 0, '凡人', '一層', '凡人肉體', '一階', 20, 100, 10, 0, 0)
+        )
         conn.commit()
-
-        cursor.execute("SELECT level FROM users WHERE user_id=?", (user_id,))
-        existing_user = cursor.fetchone()
-
-        if existing_user:
-            await interaction.response.send_message("你已經是修煉者，無需再次入道。", ephemeral=True)
-        else:
-            await interaction.response.send_message("歡迎您踏入修仙之旅，請試著摸索其他指令", ephemeral=True)
-
-    except Exception as e:
-        await interaction.response.send_message(f"發生錯誤: {str(e)}", ephemeral=True)
-    finally:
-        conn.close() 
+        await interaction.response.send_message("歡迎您踏入修仙之旅，請試著摸索其他指令")
 
 @bot.tree.command(name="感悟", description="每日簽到，獲得靈石獎勵！")
 async def 感悟(interaction: discord.Interaction):
