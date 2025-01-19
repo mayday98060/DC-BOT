@@ -55,8 +55,11 @@ async def on_ready():
     activity=discord.CustomActivity("衝破空間壁障中~")
     #online,offline,idle,dnd,invisible
     await bot.change_presence(status=discord.Status.online, activity=activity)
-    await bot.tree.sync()
-
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ 成功同步 {len(synced)} 個指令！")
+    except Exception as e:
+        print(f"❌ 無法同步指令: {e}")
 
 @bot.tree.command(name="help", description="指令列表")
 async def slash_help(interaction: discord.Interaction):
