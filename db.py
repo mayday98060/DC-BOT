@@ -20,7 +20,6 @@ def init_db():
             attack INTEGER DEFAULT 20,
             health INTEGER DEFAULT 100,
             defense INTEGER DEFAULT 10,
-            current_health INTEGER DEFAULT 100,
             temp_attack INTEGER DEFAULT 0,
             temp_defense INTEGER DEFAULT 0,
             cultivation INTEGER DEFAULT 0,
