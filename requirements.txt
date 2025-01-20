@@ -13,7 +13,7 @@ bidict==0.23.1
 blinker==1.9.0
 certifi==2024.12.14
 cffi==1.17.1
-chardet==3.0.4
+chardet
 charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
@@ -28,7 +28,7 @@ ffmpeg==1.4
 Flask==3.1.0
 Flask-SocketIO==5.5.1
 frozenlist==1.4.0
-googletrans==3.1.0a0
+googletrans
 h11==0.14.0
 h2==3.2.0
 hpack==3.0.0
