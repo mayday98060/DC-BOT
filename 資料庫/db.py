@@ -1,9 +1,26 @@
-# db.py
-import sqlite3
+import mysql.connector
+import os
 
-# 連線到資料庫（可以改成自己想要的資料庫檔名）
-conn = sqlite3.connect('users_data.db')
-cursor = conn.cursor()
+# 從 Railway 讀取 MySQL 環境變數
+DB_HOST = os.getenv("MYSQLHOST", "localhost")  # 預設 localhost
+DB_PORT = os.getenv("MYSQLPORT", "3306")  # 預設 3306
+DB_USER = os.getenv("MYSQLUSER", "root")  # 預設 root
+DB_PASSWORD = os.getenv("MYSQLPASSWORD", "")
+DB_NAME = os.getenv("MYSQLDATABASE", "railway")
+
+# 連接 MySQL
+try:
+    conn = mysql.connector.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME
+    )
+    cursor = conn.cursor()
+    print("✅ 成功連接到 MySQL 資料庫！")
+except mysql.connector.Error as e:
+    print(f"❌ 連接 MySQL 失敗: {e}")
 
 # 初始化資料表
 def init_db():
