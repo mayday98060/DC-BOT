@@ -1,11 +1,11 @@
 import mysql.connector
 import os
 
-DB_HOST = os.getenv("MYSQLHOST") 
-DB_PORT = os.getenv("MYSQLPORT")
-DB_USER = os.getenv("MYSQLUSER")
-DB_PASSWORD = os.getenv("MYSQLPASSWORD")
-DB_NAME = os.getenv("MYSQLDATABASE")
+MYSQL_HOST = os.getenv("MYSQLHOST", "mysql.railway.internal")
+MYSQL_PORT = os.getenv("MYSQLPORT", "3306")
+MYSQL_DATABASE = os.getenv("MYSQLDATABASE", "railway")
+MYSQL_USER = os.getenv("MYSQLUSER", "root")
+MYSQL_PASSWORD = os.getenv("MYSQLPASSWORD", "iclcHuQJdNpHHRFqFvRoZJiznbtRUtoD")
 
 if not all([DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME]):
     print("❌ 錯誤：某些 MySQL 環境變數缺失，請確認 Railway Variables 設定。")
