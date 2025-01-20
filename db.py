@@ -50,7 +50,7 @@ def init_db():
             correct_answers INT DEFAULT 0
         );
     ''')
-     conn.commit()
+    conn.commit()
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
