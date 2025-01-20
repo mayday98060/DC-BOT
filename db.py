@@ -57,7 +57,7 @@ def init_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INTEGER,
             item_name TEXT,
             quantity INTEGER DEFAULT 0,
