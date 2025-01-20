@@ -1,2 +1,4 @@
 [phases.setup]
 aptPkgs = ["glibc-source", "glibc-bin", "libstdc++6"]
+[phases.setup]
+nixPkgs = ["gcompat"]
