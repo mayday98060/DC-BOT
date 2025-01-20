@@ -1,0 +1,33 @@
+import sqlite3
+import re
+
+conn = sqlite3.connect('users_data.db')
+cursor = conn.cursor()
+
+new_column_name = input("請輸入新增數值的名稱（允許中文、英文字母、數字、底線）：")
+initial_value = input("請輸入該數值的初始值（可以是數字或文字）：")
+
+if not re.match(r'^[\u4e00-\u9fa5a-zA-Z0-9_]+$', new_column_name):
+    print("⚠️ 無效的欄位名稱，請使用中文、英文字母、數字或底線！")
+    conn.close()
+    exit()
+
+cursor.execute("PRAGMA table_info(users);")
+existing_columns = [row[1] for row in cursor.fetchall()]
+
+if new_column_name in existing_columns:
+    print(f"⚠️ 欄位 '{new_column_name}' 已存在，跳過新增！")
+else:
+    try:
+        initial_value = int(initial_value)
+        column_type = "INTEGER"
+    except ValueError:
+        column_type = "TEXT"
+
+    alter_query = f"ALTER TABLE users ADD COLUMN `{new_column_name}` {column_type};"
+    cursor.execute(alter_query)
+    print(f"✅ 已成功新增欄位 '{new_column_name}'，類型為 {column_type}，並設置初始值為 {initial_value}！")
+
+cursor.execute(f"UPDATE users SET `{new_column_name}` = ?;", (initial_value,))
+conn.commit()
+conn.close()
