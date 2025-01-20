@@ -62,7 +62,7 @@ def init_db():
             item_name TEXT,
             quantity INTEGER DEFAULT 0,
             effect TEXT,
-            use_restriction TEXT DEFAULT 'both',
+            use_restriction VARCHAR(50) DEFAULT 'both',
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             UNIQUE(user_id, item_name)
         );
