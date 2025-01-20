@@ -648,7 +648,7 @@ async def play_next_song(interaction: discord.Interaction):
         mp3_file, volume = song_queue.get()
 
         # 1) 先建立 FFmpegPCMAudio
-        source = FFmpegPCMAudio(executable="ffmpeg", source=ogg_file)
+        source = FFmpegPCMAudio(executable="ffmpeg", source=mp3_file)
         # 2) 再用 PCMVolumeTransformer 包起來，初始音量 = volume
         transformed_source = PCMVolumeTransformer(source, volume=volume)
 
