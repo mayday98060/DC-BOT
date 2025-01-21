@@ -35,7 +35,7 @@ def init_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            user_id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT PRIMARY KEY,
             spirit_stone INT DEFAULT 0,
             last_draw DATETIME DEFAULT NULL,
             last_checkin DATETIME DEFAULT NULL,
@@ -57,7 +57,7 @@ def init_db():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id BIGINT PRIMARY KEY,
             user_id INTEGER,
             item_name TEXT,
             quantity INTEGER DEFAULT 0,
