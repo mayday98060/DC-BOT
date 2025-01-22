@@ -48,7 +48,7 @@ db.init_db()
 conn = db.get_conn()
 cursor = db.get_cursor()
 # 手動指定 ffmpeg 路徑
-ffmpeg_path = "/usr/bin/ffmpeg"
+ffmpeg_path = ""C:\ffmpeg\ffmpeg-7.1-full_build\bin\ffmpeg.exe""
 
 # 確保 ffmpeg 存在
 if not os.path.exists(ffmpeg_path):
