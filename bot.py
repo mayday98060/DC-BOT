@@ -498,7 +498,7 @@ async def slash_抽卡(interaction: discord.Interaction):
     await interaction.response.send_message(embed=card_embed, files=files, ephemeral=True)
 
 @bot.tree.command(name="抽卡統計", description="查看自己的抽卡统计")
-async def slash_抽卡統計(interaction: discord.Interaction):
+async def 抽卡統計(interaction: discord.Interaction):
     user_id = interaction.user.id
     user_data = get_user_data(user_id)
 
@@ -522,7 +522,7 @@ def clean_up_cache():
         restart_message_id = None
 
 @bot.tree.command(name="重啟", description="重新啟動")
-async def slash_重啟(interaction: discord.Interaction):
+async def 重啟(interaction: discord.Interaction):
     if interaction.user.id == IMMORTAL_KING_ID:
         await interaction.response.send_message("世界意志重啟中...", ephemeral=True)
 
@@ -609,7 +609,7 @@ async def 播放(interaction: discord.Interaction):
             song_number = int(select_interaction.data['values'][0])
             mp3_file = os.path.join("music", song_list[song_number])
             if os.path.exists(mp3_file):
-                song_queue.put((mp3_file, 0.5))  # 預設音量為 0.5
+                song_queue.put((mp3_file, 0.5))
                 song_name = os.path.basename(mp3_file)
                 await select_interaction.response.send_message(
                     f"{song_name} 已加入播放隊列", ephemeral=True)
@@ -642,12 +642,9 @@ async def play_next_song(interaction: discord.Interaction):
     if not song_queue.empty():
         mp3_file, volume = song_queue.get()
 
-        # 1) 先建立 FFmpegPCMAudio
         source = FFmpegPCMAudio(executable="ffmpeg", source=mp3_file)
-        # 2) 再用 PCMVolumeTransformer 包起來，初始音量 = volume
         transformed_source = PCMVolumeTransformer(source, volume=volume)
 
-        # 3) 播放 transformed_source
         voice_client.play(
             transformed_source,
             after=lambda e: asyncio.run_coroutine_threadsafe(
@@ -758,14 +755,12 @@ async def 歌單(interaction: discord.Interaction):
 async def 入道(interaction: discord.Interaction):
     user_id = int(interaction.user.id)
 
-    # 檢查該用戶是否已存在
     cursor.execute("SELECT user_id FROM users WHERE user_id=%s", (user_id,))
     existing_user = cursor.fetchone()
 
     if existing_user:
         await interaction.response.send_message("你已經是修煉者，無需再次入道。")
     else:
-        # 插入新玩家資料，使用 %s 佔位符
         cursor.execute(
             """INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, cultivation, quench) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
@@ -805,13 +800,12 @@ async def 感悟(interaction: discord.Interaction):
             f"感悟成功！你的靈石數量增加了，目前靈石：{new_spirit_stone}", ephemeral=True
         )
 
-@bot.tree.command(name="占卜", description="每日占卜，獲得靈石獎勵！")
+@tree.command(name="占卜", description="每日占卜，獲得靈石獎勵！")
 async def 占卜(interaction: discord.Interaction):
     user_id = interaction.user.id
     today = str(datetime.date.today())
 
-    cursor.execute("SELECT last_draw, spirit_stone FROM users WHERE user_id=?",
-                   (user_id, ))
+    cursor.execute("SELECT last_draw, spirit_stone FROM users WHERE user_id=%s", (user_id,))
     result = cursor.fetchone()
 
     if not result:
@@ -855,14 +849,16 @@ async def 占卜(interaction: discord.Interaction):
         spirit_stone += reward
 
         cursor.execute(
-            "UPDATE users SET last_draw=?, spirit_stone=? WHERE user_id=?",
-            (today, spirit_stone, user_id))
+            "UPDATE users SET last_draw=%s, spirit_stone=%s WHERE user_id=%s",
+            (today, spirit_stone, user_id)
+        )
         conn.commit()
 
         embed = discord.Embed(
             title=f"你抽到了「{drawn_fortune}」!",
             description=f"獲得了獎勵：{reward}靈石。\n目前靈石：{spirit_stone}",
-            color=discord.Color.blue())
+            color=discord.Color.blue()
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="靈石", description="查看你當前的靈石數量。")
