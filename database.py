@@ -1,4 +1,3 @@
-#歌單
 song_list = {
     1: "UnwelcomeSchool-Mitsukiyo.ogg",
     2: "あの夢をなぞって-YOASOBI.ogg",
@@ -76,7 +75,7 @@ song_list = {
     75: "ゴーストルール-DECO_27.ogg",
     76: "余花にみとれて-keeno.ogg"
 }
-#抽籤獎勵
+
 fortune_rewards = {
     '上籤' : '200靈石', 
     '上上籤' : '100靈石', 
@@ -99,7 +98,7 @@ fortune_rewards = {
     '下兇籤' : '15靈石', 
     '不吉籤' : '10靈石'
 }
-#定義敵人
+
 enemies = {
     "外勁一層武者": {"health": 750, "attack": 140, "defense": 46},
     "外勁六層武者": {"health": 1025, "attack": 190, "defense": 61},
@@ -107,18 +106,19 @@ enemies = {
     "內勁一層武者": {"health": 1355, "attack": 250, "defense": 79},
     "內勁六層武者": {"health": 1630, "attack": 300, "defense": 91},
 }
+
 items = {
-    "生命藥水": {"type": "heal", "value": 50, "use_restriction": "both"},   # 戰鬥內外皆可使用
-    "力量藥水": {"type": "buff", "attack": 10, "use_restriction": "combat"},  # 僅能在戰鬥中使用
-    "防禦藥水": {"type": "buff", "defense": 5, "use_restriction": "combat"},  # 僅能在戰鬥中使用
-    "修為": {"type": "gain_cultivation", "value": 100, "use_restriction": "non_combat"},  # 僅能在戰鬥之外使用
-    "精華": {"type": "gain_quench", "value": 100, "use_restriction": "non_combat"}  # 僅能在戰鬥之外使用
+    "生命藥水": {"type": "heal", "value": 50, "use_restriction": "both"},  
+    "力量藥水": {"type": "buff", "attack": 10, "use_restriction": "combat"},  
+    "防禦藥水": {"type": "buff", "defense": 5, "use_restriction": "combat"},  
+    "修為": {"type": "gain_cultivation", "value": 100, "use_restriction": "non_combat"},  
+    "精華": {"type": "gain_quench", "value": 100, "use_restriction": "non_combat"}  
 }
-# 定義道具價格
+
 item_prices = {
-    "生命藥水": 10,  # 每個 10 靈石
-    "力量藥水": 20,  # 每個 20 靈石
-    "防禦藥水": 15,  # 每個 15 靈石
+    "生命藥水": 10,  
+    "力量藥水": 20,  
+    "防禦藥水": 15,  
     "修為": 100,
     "精華": 250,
 }
