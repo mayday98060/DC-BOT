@@ -42,6 +42,7 @@ song_queue = Queue()
 command_lock = {}
 user_stats = {}
 battle_states = {}
+ffmpeg_path = "ffmpeg"
 profession_image_folder = "images_mafia42"
 skill_icon_folder = "icons_mafia42"
 db.init_db()
