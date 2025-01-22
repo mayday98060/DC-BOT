@@ -7,7 +7,6 @@ DB_USER = os.getenv("MYSQLUSER", "root")
 DB_PASSWORD = os.getenv("MYSQLPASSWORD", "hqVcNMcZqgFqGINfzUSgyhGpzGhhxKYX")
 DB_NAME = os.getenv("MYSQLDATABASE", "railway")  # 確保變數名稱一致
 
-# 顯示環境變數，方便 Debug
 print(f"🔍 嘗試連接 MySQL：{DB_HOST}:{DB_PORT}, 使用者: {DB_USER}, 資料庫: {DB_NAME}")
 
 if not all([DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME]):
