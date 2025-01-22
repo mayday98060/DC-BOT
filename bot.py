@@ -37,7 +37,7 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 bot.remove_command("help")
 restart_message_id = None
 start_time = datetime.datetime.now()
-IMMORTAL_KING_ID = 887261477919133739
+IMMORTAL_KING_ID = os.getenv("IMMORTAL_KING_ID")
 song_queue = Queue()
 command_lock = {}
 user_stats = {}
@@ -48,7 +48,6 @@ db.init_db()
 conn = db.get_conn()
 cursor = db.get_cursor()
 
-#顯示機器人名稱，並定義在discord上的狀態
 @bot.event
 async def on_ready():
     print(f"目前登入身份 --> {bot.user}")
@@ -398,7 +397,7 @@ async def 狀態(interaction: discord.Interaction):
     used_memory = memory_info.used // (1024 * 1024)
 
     embed = discord.Embed(title="🌸小新#6500🌸",
-                          description="版本:1.0.3",
+                          description="版本:2.0.0",
                           color=discord.Color.pink())
     embed.add_field(name="💻伺服器💻", value=f"{server_count}", inline=False)
     embed.add_field(name="👤成員👤", value=f"{user_count}", inline=False)
@@ -409,7 +408,7 @@ async def 狀態(interaction: discord.Interaction):
                     inline=False)
     embed.add_field(name="💾總內存💾", value=f"{total_memory}MB", inline=False)
     embed.add_field(name="💾已使用內存💾", value=f"{used_memory}MB", inline=False)
-    embed.add_field(name="✶1.1.0更新內容✶", value=f"將傳統指令轉換成slash指令", inline=False)
+    embed.add_field(name="✶1.1.0更新內容✶", value=f"將資料庫替換為MYSQL，且機器人能夠在雲端環境運行", inline=False)
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
