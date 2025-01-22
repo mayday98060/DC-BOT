@@ -1,10 +1,17 @@
-FROM jrottenberg/ffmpeg:4.4-ubuntu1804
+# 從官方 Python slim 映像檔開始
+FROM python:3.10-slim-bullseye
 
-# 同樣地，安裝 Python(如果該基底映像檔沒有預裝 Python)
-RUN apt-get update && apt-get install -y python3 python3-pip
+# 安裝 ffmpeg 以及其他你需要的套件
+RUN apt-get update && apt-get install -y ffmpeg
 
+# 建立工作目錄
 WORKDIR /app
-COPY . .
-RUN pip3 install --no-cache-dir -r requirements.txt
 
-CMD ["python3", "bot.py"]
+# 複製專案檔案到容器內
+COPY . .
+
+# 安裝 Python 套件
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 你的啟動指令
+CMD ["python", "bot.py"]
