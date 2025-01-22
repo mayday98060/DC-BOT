@@ -1,4 +1,3 @@
-# 題庫
 question_pool = [
     {
         'question': '哆啦A夢最喜愛的食物是?',
