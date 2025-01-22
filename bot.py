@@ -60,34 +60,30 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
 
-@bot.tree.command(name="help", description="指令列表")
-async def slash_help(interaction: discord.Interaction):
-    help_embed = discord.Embed(title="🌸指令列表🌸",
-                               description="",
-                               color=discord.Color.green())
-    help_embed.add_field(name="☯入道☯", value="成為修煉者", inline=True)
-    help_embed.add_field(name="😺猜拳😺", value="跟電腦玩猜拳(消耗10靈石)", inline=True)
-    help_embed.add_field(name="😺play1A2B😺", value="玩1A2B", inline=True)
-    help_embed.add_field(name="🔊加入語音🔊", value="機器人加入語音聊天室", inline=True)
-    help_embed.add_field(name="🔈離開語音🔈", value="機器人離開語音聊天室", inline=True)
-    help_embed.add_field(name="▶️播放 歌曲編號▶️", value="播放歌曲(請先加入語音)", inline=True)
-    help_embed.add_field(name="🔀隨機播放🔀", value="歌單隨機選音樂", inline=True)
-    help_embed.add_field(name="♪⏸️暫停⏸️", value="停止音樂", inline=True)
-    help_embed.add_field(name="▶️繼續▶️", value="繼續上次播放的歌曲", inline=True)
-    help_embed.add_field(name="🔊調整音量 數值🔊",
-                         value="音量調整範圍(0.0~2.0)",
-                         inline=True)
-    help_embed.add_field(name="♪歌單♪", value="歌曲清單", inline=True)
-    help_embed.add_field(name="♪查看播放順序♪", value="歌曲連續播放的順序", inline=True)
-    help_embed.add_field(name="📖狀態📖", value="查看機器人資訊", inline=True)
-    help_embed.add_field(name="📖修仙世界📖", value="修仙指南", inline=True)
-    help_embed.add_field(name="🏆rank🏆", value="排行榜列表", inline=True)
-    help_embed.add_field(name="❓問答遊戲❓", value="答案四選一", inline=True)
+@bot.tree.command(name="幫助", description="指令列表")
+async def 幫助(interaction: discord.Interaction):
+    幫助 = discord.Embed(title="🌸指令列表🌸", description="",color=discord.Color.green())
+    幫助.add_field(name="☯入道☯", value="成為修煉者", inline=True)
+    幫助.add_field(name="😺猜拳😺", value="跟電腦玩猜拳(消耗10靈石)", inline=True)
+    幫助.add_field(name="😺play1A2B😺", value="玩1A2B", inline=True)
+    幫助.add_field(name="🔊加入語音🔊", value="機器人加入語音聊天室", inline=True)
+    幫助.add_field(name="🔈離開語音🔈", value="機器人離開語音聊天室", inline=True)
+    幫助.add_field(name="▶️播放 歌曲編號▶️", value="播放歌曲(請先加入語音)", inline=True)
+    幫助.add_field(name="🔀隨機播放🔀", value="歌單隨機選音樂", inline=True)
+    幫助.add_field(name="♪⏸️暫停⏸️", value="停止音樂", inline=True)
+    幫助.add_field(name="▶️繼續▶️", value="繼續上次播放的歌曲", inline=True)
+    幫助.add_field(name="🔊調整音量 數值🔊", value="音量調整範圍(0.0~2.0)", inline=True)
+    幫助.add_field(name="♪歌單♪", value="歌曲清單", inline=True)
+    幫助.add_field(name="♪查看播放順序♪", value="歌曲連續播放的順序", inline=True)
+    幫助.add_field(name="📖狀態📖", value="查看機器人資訊", inline=True)
+    幫助.add_field(name="📖修仙世界📖", value="修仙指南", inline=True)
+    幫助.add_field(name="🏆rank🏆", value="排行榜列表", inline=True)
+    幫助.add_field(name="❓問答遊戲❓", value="答案四選一", inline=True)
 
-    await interaction.response.send_message(embed=help_embed, ephemeral=True)
+    await interaction.response.send_message(embed=幫助, ephemeral=True)
 
 @bot.tree.command(name="修仙世界", description="修仙指南")
-async def slash_修仙世界(interaction: discord.Interaction):
+async def 修仙世界(interaction: discord.Interaction):
     修仙世界 = discord.Embed(title="🌸修仙指南🌸",
                          description="歡迎您來到進步飛速的未來修仙世界",
                          color=discord.Color.blue())
