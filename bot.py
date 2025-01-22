@@ -42,13 +42,19 @@ song_queue = Queue()
 command_lock = {}
 user_stats = {}
 battle_states = {}
-ffmpeg_path = "ffmpeg"
 profession_image_folder = "images_mafia42"
 skill_icon_folder = "icons_mafia42"
 db.init_db()
 conn = db.get_conn()
 cursor = db.get_cursor()
+# 手動指定 ffmpeg 路徑
+ffmpeg_path = "/usr/bin/ffmpeg"
 
+# 確保 ffmpeg 存在
+if not os.path.exists(ffmpeg_path):
+    raise FileNotFoundError(f"❌ 找不到 ffmpeg，請確認安裝是否成功！({ffmpeg_path})")
+
+print(f"✅ ffmpeg 路徑: {ffmpeg_path}")
 #顯示機器人名稱，並定義在discord上的狀態
 @bot.event
 async def on_ready():
