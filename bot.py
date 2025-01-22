@@ -26,7 +26,7 @@ from discord.ext import commands, tasks
 from discord.ui import Modal, TextInput
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 from database2 import nirvana_costs, body_training_costs
-from database import song_list, fortune_rewards, items, item_prices, enemies
+from database import song_list, rewards, fortune, items, item_prices, enemies
 from mafia42 import class_skills, class_skills_3, class_skills_4_to_6, class_weights
 
 intents = discord.Intents.default()
@@ -817,34 +817,8 @@ async def 占卜(interaction: discord.Interaction):
     if last_draw == today:
         await interaction.response.send_message("你今天已經占卜過了，請明天再來。", ephemeral=True)
     else:
-        fortune = [
-            '上籤', '上上籤', '上中籤', '上平籤', '上下籤', '大吉籤', '上吉籤', '中吉籤', '下吉籤', '中籤',
-            '中上籤', '中平籤', '中中籤', '中下籤', '下籤', '下上籤', '下中籤', '下下籤', '下兇籤', '不吉籤'
-        ]
         prob = [1] * len(fortune)
         drawn_fortune = random.choices(fortune, weights=prob)[0]
-        rewards = {
-            '上籤': 400,
-            '上上籤': 200,
-            '上中籤': 190,
-            '上平籤': 180,
-            '上下籤': 170,
-            '大吉籤': 160,
-            '上吉籤': 150,
-            '中吉籤': 140,
-            '下吉籤': 130,
-            '中籤': 120,
-            '中上籤': 110,
-            '中平籤': 100,
-            '中中籤': 90,
-            '中下籤': 80,
-            '下籤': 70,
-            '下上籤': 60,
-            '下中籤': 50,
-            '下下籤': 40,
-            '下兇籤': 30,
-            '不吉籤': 20
-        }
         reward = rewards.get(drawn_fortune, 0)
         spirit_stone += reward
 
