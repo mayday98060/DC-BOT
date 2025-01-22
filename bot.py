@@ -800,7 +800,7 @@ async def 感悟(interaction: discord.Interaction):
             f"感悟成功！你的靈石數量增加了，目前靈石：{new_spirit_stone}", ephemeral=True
         )
 
-@tree.command(name="占卜", description="每日占卜，獲得靈石獎勵！")
+@bot.tree.command(name="占卜", description="每日占卜，獲得靈石獎勵！")
 async def 占卜(interaction: discord.Interaction):
     user_id = interaction.user.id
     today = str(datetime.date.today())
