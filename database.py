@@ -73,7 +73,8 @@ song_list = {
     73: "APT.-ROSÉ & Bruno Mars.ogg",
     74: "snooze-wotaku.ogg",
     75: "ゴーストルール-DECO_27.ogg",
-    76: "余花にみとれて-keeno.ogg"
+    76: "余花にみとれて-keeno.ogg",
+    77: "YOASOBI合輯.ogg"
 }
 
 fortune_rewards = {
