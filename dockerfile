@@ -1,17 +1,10 @@
-FROM python:3.11
+FROM jrottenberg/ffmpeg:4.4-ubuntu1804
 
-# 安裝 ffmpeg
-RUN apt update && apt install -y ffmpeg
+# 同樣地，安裝 Python(如果該基底映像檔沒有預裝 Python)
+RUN apt-get update && apt-get install -y python3 python3-pip
 
-# 設定工作目錄
 WORKDIR /app
+COPY . .
+RUN pip3 install --no-cache-dir -r requirements.txt
 
-# 安裝 Python 依賴
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# 複製 bot.py
-COPY bot.py .
-
-# 執行機器人
-CMD ["python", "bot.py"]
+CMD ["python3", "bot.py"]
