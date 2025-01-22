@@ -761,21 +761,24 @@ async def 歌單(interaction: discord.Interaction):
 
 @bot.tree.command(name="入道", description="開始你的修煉之旅！")
 async def 入道(interaction: discord.Interaction):
-    user_id = interaction.user.id
+    user_id = int(interaction.user.id)
 
-    cursor.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+    # 檢查該用戶是否已存在
+    cursor.execute("SELECT user_id FROM users WHERE user_id=%s", (user_id,))
     existing_user = cursor.fetchone()
 
     if existing_user:
         await interaction.response.send_message("你已經是修煉者，無需再次入道。")
     else:
+        # 插入新玩家資料，使用 %s 佔位符
         cursor.execute(
             """INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, cultivation, quench) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (user_id, 0, '凡人', '一層', '凡人肉體', '一階', 20, 100, 10, 0, 0)
         )
         conn.commit()
         await interaction.response.send_message("歡迎您踏入修仙之旅，請試著摸索其他指令")
+
 
 @bot.tree.command(name="感悟", description="每日簽到，獲得靈石獎勵！")
 async def 感悟(interaction: discord.Interaction):
@@ -783,8 +786,9 @@ async def 感悟(interaction: discord.Interaction):
     today = str(datetime.date.today())
 
     cursor.execute(
-        "SELECT last_checkin, spirit_stone FROM users WHERE user_id=?",
-        (user_id, ))
+        "SELECT last_checkin, spirit_stone FROM users WHERE user_id = %s",
+        (user_id,)
+    )
     result = cursor.fetchone()
 
     if not result:
@@ -798,11 +802,13 @@ async def 感悟(interaction: discord.Interaction):
     else:
         new_spirit_stone = spirit_stone + 100
         cursor.execute(
-            "UPDATE users SET spirit_stone=?, last_checkin=? WHERE user_id=?",
-            (new_spirit_stone, today, user_id))
+            "UPDATE users SET spirit_stone = %s, last_checkin = %s WHERE user_id = %s",
+            (new_spirit_stone, today, user_id)
+        )
         conn.commit()
         await interaction.response.send_message(
-            f"感悟成功！你的靈石數量增加了，目前靈石：{new_spirit_stone}", ephemeral=True)
+            f"感悟成功！你的靈石數量增加了，目前靈石：{new_spirit_stone}", ephemeral=True
+        )
 
 @bot.tree.command(name="占卜", description="每日占卜，獲得靈石獎勵！")
 async def 占卜(interaction: discord.Interaction):
