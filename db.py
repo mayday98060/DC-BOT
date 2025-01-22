@@ -56,15 +56,14 @@ def init_db():
     conn.commit()
 
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS inventory (
-            id BIGINT PRIMARY KEY,
-            user_id INTEGER,
-            item_name TEXT,
-            quantity INTEGER DEFAULT 0,
+        CREATE TABLE inventory (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT,                
+            item_name VARCHAR(100),
+            quantity INT DEFAULT 0,
             effect TEXT,
             use_restriction VARCHAR(50) DEFAULT 'both',
-            FOREIGN KEY (user_id) REFERENCES users (user_id),
-            UNIQUE(user_id, item_name)
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         );
     ''')
     conn.commit()
