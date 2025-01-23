@@ -1,5 +1,4 @@
 import os
-import pymysql
 import sys
 import json
 import math
