@@ -60,7 +60,7 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
 
-DB_HOST = "monorail.proxy.rlwy.net"
+DB_HOST = "mysql.railway.internal"
 DB_PORT = "3306"
 DB_USER = "root"
 DB_PASS = "IebRbauIYseiiwoahmZNbUECpNtoOYpS"
