@@ -60,6 +60,12 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
 
+backup_filename = f"backup_{datetime.datetime.now().strftime('%Y%m%d')}.sql"
+
+backup_cmd = f"mysqldump -h {DB_HOST} -P {DB_PORT} -u {DB_USER} -p{DB_PASS} {DB_NAME} > {backup_filename}"
+subprocess.run(backup_cmd, shell=True)
+print(f"✅ 已備份 MySQL 到 {backup_filename}")
+
 @bot.tree.command(name="幫助", description="指令列表")
 async def 幫助(interaction: discord.Interaction):
     幫助 = discord.Embed(title="🌸指令列表🌸", description="",color=discord.Color.green())
