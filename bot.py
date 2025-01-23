@@ -60,6 +60,12 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
 
+DB_HOST = "monorail.proxy.rlwy.net"
+DB_PORT = "3306"
+DB_USER = "root"
+DB_PASS = "IebRbauIYseiiwoahmZNbUECpNtoOYpS"
+DB_NAME = "railway"
+
 backup_filename = f"backup_{datetime.datetime.now().strftime('%Y%m%d')}.sql"
 
 backup_cmd = f"mysqldump -h {DB_HOST} -P {DB_PORT} -u {DB_USER} -p{DB_PASS} {DB_NAME} > {backup_filename}"
