@@ -1,0 +1,27 @@
+name: Frequent MySQL Backup
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # 每 5 分鐘執行一次
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得專案
+        uses: actions/checkout@v2
+
+      - name: 安裝 MySQL 客戶端
+        run: sudo apt-get install mysql-client -y
+
+      - name: 執行 MySQL 備份
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          mysqldump -h monorail.proxy.rlwy.net -P 23648 -u root -p${{ secrets.DB_PASS }} railway > backup_$TIMESTAMP.sql
+
+      - name: 推送到 GitHub
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add backup_*.sql
+          git commit -m "🔄 Auto Backup: $(date +'%Y-%m-%d %H:%M:%S')"
+          git push
