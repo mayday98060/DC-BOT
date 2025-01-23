@@ -13,6 +13,14 @@ jobs:
       - name: 安裝 MySQL 客戶端
         run: sudo apt-get install mysql-client -y
 
+      - name: 檢查變數
+        run: |
+          echo "DB_HOST=${{ secrets.DB_HOST }}"
+          echo "DB_PORT=${{ secrets.DB_PORT }}"
+          echo "DB_USER=${{ secrets.DB_USER }}"
+          echo "DB_PASS=********"
+
+
       - name: 執行 MySQL 備份
         run: |
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
