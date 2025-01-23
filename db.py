@@ -4,7 +4,7 @@ import os
 DB_HOST = os.getenv("MYSQLHOST", "mysql.railway.internal")
 DB_PORT = os.getenv("MYSQLPORT", "3306")
 DB_USER = os.getenv("MYSQLUSER", "root")
-DB_PASSWORD = os.getenv("MYSQLPASSWORD", "hqVcNMcZqgFqGINfzUSgyhGpzGhhxKYX")
+DB_PASSWORD = os.getenv("MYSQLPASSWORD", "IebRbauIYseiiwoahmZNbUECpNtoOYpS")
 DB_NAME = os.getenv("MYSQLDATABASE", "railway")  # 確保變數名稱一致
 
 print(f"🔍 嘗試連接 MySQL：{DB_HOST}:{DB_PORT}, 使用者: {DB_USER}, 資料庫: {DB_NAME}")
