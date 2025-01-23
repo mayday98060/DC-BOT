@@ -115,7 +115,7 @@ async def 修仙世界(interaction: discord.Interaction):
 def use_item(user_id, item_name, in_combat):
     try:
         cursor.execute(
-            "SELECT quantity, effect, use_restriction FROM inventory WHERE user_id = ? AND item_name = ?",
+            "SELECT quantity, effect, use_restriction FROM inventory WHERE user_id = %s AND item_name = %s",
             (user_id, item_name),
         )
         result = cursor.fetchone()
@@ -123,7 +123,7 @@ def use_item(user_id, item_name, in_combat):
         if not result:
             return "你沒有這個道具！"
 
-        quantity, effect, use_restriction = result
+        quantity, effect, use_restriction = result['quantity'], result['effect'], result['use_restriction']
 
         if quantity <= 0:
             return "你沒有足夠的道具！"
@@ -134,56 +134,37 @@ def use_item(user_id, item_name, in_combat):
             return "這個道具只能在戰鬥中使用！"
 
         cursor.execute(
-            "UPDATE inventory SET quantity = quantity - 1 WHERE user_id = ? AND item_name = ?",
+            "UPDATE inventory SET quantity = quantity - 1 WHERE user_id = %s AND item_name = %s",
             (user_id, item_name),
         )
 
         if effect == "heal":
-            cursor.execute(
-                "SELECT health, current_health FROM users WHERE user_id = ?",
-                (user_id, ))
-            max_health, current_health = cursor.fetchone()
+            cursor.execute("SELECT health, current_health FROM users WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            max_health, current_health = result['health'], result['current_health']
             new_health = min(current_health + 50, max_health)
-            cursor.execute(
-                "UPDATE users SET current_health = ? WHERE user_id = ?",
-                (new_health, user_id))
+            cursor.execute("UPDATE users SET current_health = %s WHERE user_id = %s", (new_health, user_id))
         elif effect == "buff_attack":
-            cursor.execute("SELECT temp_attack FROM users WHERE user_id = ?",
-                           (user_id, ))
-            temp_attack = cursor.fetchone()[0]
-            new_temp_attack = temp_attack + 10
-            cursor.execute(
-                "UPDATE users SET temp_attack = ? WHERE user_id = ?",
-                (new_temp_attack, user_id))
+            cursor.execute("SELECT temp_attack FROM users WHERE user_id = %s", (user_id,))
+            temp_attack = cursor.fetchone()['temp_attack']
+            cursor.execute("UPDATE users SET temp_attack = %s WHERE user_id = %s", (temp_attack + 10, user_id))
         elif effect == "buff_defense":
-            cursor.execute("SELECT temp_defense FROM users WHERE user_id = ?",
-                           (user_id, ))
-            temp_defense = cursor.fetchone()[0]
-            new_temp_defense = temp_defense + 5
-            cursor.execute(
-                "UPDATE users SET temp_defense = ? WHERE user_id = ?",
-                (new_temp_defense, user_id))
+            cursor.execute("SELECT temp_defense FROM users WHERE user_id = %s", (user_id,))
+            temp_defense = cursor.fetchone()['temp_defense']
+            cursor.execute("UPDATE users SET temp_defense = %s WHERE user_id = %s", (temp_defense + 5, user_id))
         elif effect == "gain_cultivation":
-            cursor.execute("SELECT cultivation FROM users WHERE user_id = ?",
-                           (user_id, ))
-            current_cultivation = cursor.fetchone()[0]
-            new_cultivation = current_cultivation + 100
-            cursor.execute(
-                "UPDATE users SET cultivation = ? WHERE user_id = ?",
-                (new_cultivation, user_id))
+            cursor.execute("SELECT cultivation FROM users WHERE user_id = %s", (user_id,))
+            current_cultivation = cursor.fetchone()['cultivation']
+            cursor.execute("UPDATE users SET cultivation = %s WHERE user_id = %s", (current_cultivation + 100, user_id))
         elif effect == "gain_quench":
-            cursor.execute("SELECT quench FROM users WHERE user_id = ?",
-                           (user_id, ))
-            current_quench = cursor.fetchone()[0]
-            new_quench = current_quench + 100
-            cursor.execute("UPDATE users SET quench = ? WHERE user_id = ?",
-                           (new_quench, user_id))
+            cursor.execute("SELECT quench FROM users WHERE user_id = %s", (user_id,))
+            current_quench = cursor.fetchone()['quench']
+            cursor.execute("UPDATE users SET quench = %s WHERE user_id = %s", (current_quench + 100, user_id))
         else:
             return "未知效果的道具無法使用！"
 
         conn.commit()
         return f"你成功使用了 {item_name}！"
-
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -191,28 +172,25 @@ def use_item(user_id, item_name, in_combat):
 
 def end_combat(user_id):
     cursor.execute(
-        "UPDATE users SET temp_attack = 0, temp_defense = 0 WHERE user_id = ?",
-        (user_id, ),
+        "UPDATE users SET temp_attack = 0, temp_defense = 0 WHERE user_id = %s",
+        (user_id,),
     )
     conn.commit()
     return "戰鬥結束，臨時加成已清除！"
 
 class PurchaseView(View):
-
     def __init__(self, user_id):
         super().__init__(timeout=None)
         self.user_id = user_id
         self.add_item(PurchaseSelect(user_id))
 
 class PurchaseSelect(Select):
-
     def __init__(self, user_id):
         self.user_id = user_id
         options = [
             discord.SelectOption(
                 label=item_name,
-                description=
-                f"價格：{item_prices[item_name]} 靈石 | 類型：{items[item_name]['type']}",
+                description=f"價格：{item_prices[item_name]} 靈石 | 類型：{items[item_name]['type']}",
                 value=item_name,
             ) for item_name in items
         ]
@@ -225,14 +203,12 @@ class PurchaseSelect(Select):
 
     async def callback(self, interaction: discord.Interaction):
         item_name = self.values[0]
-
         await interaction.response.edit_message(
             content=f"你選擇了 **{item_name}**，請選擇購買數量：",
             view=QuantitySelectView(self.user_id, item_name),
         )
 
 class QuantitySelectView(View):
-
     def __init__(self, user_id, item_name):
         super().__init__(timeout=None)
         self.user_id = user_id
@@ -240,60 +216,26 @@ class QuantitySelectView(View):
         self.add_item(QuantitySelect(user_id, item_name))
 
 class QuantitySelect(Select):
-
     def __init__(self, user_id, item_name):
         self.user_id = user_id
         self.item_name = item_name
         options = [
-            discord.SelectOption(label=str(i),
-                                 description=f"購買 {i} 個",
-                                 value=str(i)) for i in range(1, 11)
+            discord.SelectOption(label=str(i), description=f"購買 {i} 個", value=str(i)) for i in range(1, 11)
         ]
-        super().__init__(
-            placeholder="選擇購買數量...",
-            min_values=1,
-            max_values=1,
-            options=options,
-        )
+        super().__init__(placeholder="選擇購買數量...", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         quantity = int(self.values[0])
-
-        user_id = self.user_id
-        item_name = self.item_name
-
-        price = item_prices[item_name]
-        total_cost = price * quantity
-
-        cursor.execute("SELECT spirit_stone FROM users WHERE user_id = ?",
-                       (user_id, ))
+        total_cost = item_prices[self.item_name] * quantity
+        cursor.execute("SELECT spirit_stone FROM users WHERE user_id = %s", (self.user_id,))
         result = cursor.fetchone()
-        if not result or result[0] < total_cost:
-            await interaction.response.send_message(
-                f"你的靈石不足！購買 **{item_name}** {quantity} 個需要 {total_cost} 靈石。",
-                ephemeral=True
-            )
+        if not result or result['spirit_stone'] < total_cost:
+            await interaction.response.send_message(f"你的靈石不足！購買 **{self.item_name}** 需要 {total_cost} 靈石。", ephemeral=True)
             return
-
-        cursor.execute(
-            "UPDATE users SET spirit_stone = spirit_stone - ? WHERE user_id = ?",
-            (total_cost, user_id),
-        )
-        cursor.execute(
-            """
-            INSERT INTO inventory (user_id, item_name, quantity)
-            VALUES (?, ?, ?)
-            ON CONFLICT(user_id, item_name)
-            DO UPDATE SET quantity = quantity + ?;
-            """,
-            (user_id, item_name, quantity, quantity),
-        )
+        cursor.execute("UPDATE users SET spirit_stone = spirit_stone - %s WHERE user_id = %s", (total_cost, self.user_id))
+        cursor.execute("INSERT INTO inventory (user_id, item_name, quantity) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE quantity = quantity + %s", (self.user_id, self.item_name, quantity, quantity))
         conn.commit()
-
-        await interaction.response.send_message(
-            f"成功購買 **{item_name}** {quantity} 個！花費了 {total_cost} 靈石。",
-            ephemeral=True,
-        )
+        await interaction.response.send_message(f"成功購買 **{self.item_name}** {quantity} 個！", ephemeral=True)
 
 @bot.tree.command(name="購買道具", description="使用靈石購買")
 async def 商店(interaction: discord.Interaction):
