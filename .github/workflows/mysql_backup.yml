@@ -1,7 +1,7 @@
 name: Frequent MySQL Backup
 on:
   schedule:
-    - cron: "*/3  * * * *"  # 每 5 分鐘執行一次（如果要每 2 小時改成 0 */2 * * *）
+    - cron: "*/5  * * * *"  # 每 5 分鐘執行一次（如果要每 2 小時改成 0 */2 * * *）
 
 jobs:
   backup:
