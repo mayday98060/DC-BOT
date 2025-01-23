@@ -1,7 +1,7 @@
 name: Frequent MySQL Backup
 on:
   schedule:
-    - cron: "*/5 * * * *"  # 每 5 分鐘執行一次
+    - cron: "*/5 * * * *"  # 每 2 小時執行一次
 
 jobs:
   backup:
@@ -9,6 +9,11 @@ jobs:
     steps:
       - name: 取得專案
         uses: actions/checkout@v2
+
+      - name: 設定環境變數
+        env:
+          MYSQL_URL: ${{ secrets.MYSQL_URL }}
+        run: echo "Using MYSQL_URL from GitHub Secrets"
 
       - name: 安裝 MySQL 客戶端
         run: sudo apt-get install mysql-client -y
@@ -21,12 +26,11 @@ jobs:
             -P $(echo $MYSQL_URL | awk -F@ '{print $2}' | cut -d: -f2 | cut -d/ -f1) \
             -u $(echo $MYSQL_URL | awk -F: '{print $2}' | sed 's/\/\///') \
             -p$(echo $MYSQL_URL | awk -F: '{print $3}' | cut -d@ -f1) \
-            $(echo $MYSQL_URL | awk -F/ '{print $NF}') > backup.sql
+            $(echo $MYSQL_URL | awk -F/ '{print $NF}') > backup_$TIMESTAMP.sql
 
       - name: 推送到 GitHub
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add backup_*.sql
-          git commit -m "🔄 Auto Backup: $(date +'%Y-%m-%d %H:%M:%S')"
-          git push
+          git add backup_*.sql || echo "No new backup files to commit"
+          git diff --cached --exit-code || (git commit -m "🔄 Auto Backup: $(date +'%Y-%m-%d %H:%M:%S')" && git push)
