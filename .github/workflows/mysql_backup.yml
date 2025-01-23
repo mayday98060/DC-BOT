@@ -1,7 +1,7 @@
 name: Frequent MySQL Backup
 on:
   schedule:
-    - cron: "*/5 * * * *"  # 每 2 小時執行一次
+    - cron: "*/5 * * * *"  # 每 5 分鐘執行一次（如果要每 2 小時改成 0 */2 * * *）
 
 jobs:
   backup:
@@ -19,17 +19,20 @@ jobs:
         run: sudo apt-get install mysql-client -y
 
       - name: 執行 MySQL 備份
+        env:
+          MYSQL_URL: ${{ secrets.MYSQL_URL }}
         run: |
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
           mysqldump --column-statistics=0 --single-transaction --quick --lock-tables=false \
-            -h $(echo $MYSQL_URL | awk -F@ '{print $2}' | cut -d: -f1) \
-            -P $(echo $MYSQL_URL | awk -F@ '{print $2}' | cut -d: -f2 | cut -d/ -f1) \
-            -u $(echo $MYSQL_URL | awk -F: '{print $2}' | sed 's/\/\///') \
-            -p$(echo $MYSQL_URL | awk -F: '{print $3}' | cut -d@ -f1) \
-            $(echo $MYSQL_URL | awk -F/ '{print $NF}') > backup_$TIMESTAMP.sql
+            -h $(echo "$MYSQL_URL" | awk -F@ '{print $2}' | cut -d: -f1) \
+            -P $(echo "$MYSQL_URL" | awk -F@ '{print $2}' | cut -d: -f2 | cut -d/ -f1) \
+            -u $(echo "$MYSQL_URL" | awk -F: '{print $2}' | sed 's/\/\///') \
+            -p$(echo "$MYSQL_URL" | awk -F: '{print $3}' | cut -d@ -f1) \
+            $(echo "$MYSQL_URL" | awk -F/ '{print $NF}') > backup_$TIMESTAMP.sql
 
       - name: 推送到 GitHub
         run: |
+          set -x  # 啟用詳細模式
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           git add backup_*.sql || echo "No new backup files to commit"
