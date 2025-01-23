@@ -1,7 +1,9 @@
-name: Frequent MySQL Backup
+name: Frequent MySQL Backup and Cleanup
+
 on:
   schedule:
-    - cron: "*/5 * * * *"  # 每 5 分鐘執行一次（如果要每 2 小時改成 0 */2 * * *）
+    - cron: "*/5 * * * *"  # 每天 00:00 UTC 執行（台灣時間 08:00）
+  workflow_dispatch:  # 允許手動執行
 
 jobs:
   backup:
@@ -13,44 +15,40 @@ jobs:
       - name: 設定環境變數
         env:
           MYSQL_URL: ${{ secrets.MYSQL_URL }}
-        run: echo "✅ Using MYSQL_URL from GitHub Secrets"
+        run: echo "Using MYSQL_URL from GitHub Secrets"
 
       - name: 安裝 MySQL 客戶端
-        run: sudo apt-get update && sudo apt-get install -y mysql-client
+        run: sudo apt-get install mysql-client -y
 
       - name: 執行 MySQL 備份
         env:
           MYSQL_URL: ${{ secrets.MYSQL_URL }}
         run: |
-          set -e  # 如果有錯誤，立即停止
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-
-          # 解析 MySQL URL
-          MYSQL_HOST=$(echo "$MYSQL_URL" | sed -E 's#mysql://[^@]+@([^:/]+).*#\1#')
-          MYSQL_PORT=$(echo "$MYSQL_URL" | sed -E 's#mysql://[^@]+@[^:/]+:([0-9]+).*#\1#')
-          MYSQL_USER=$(echo "$MYSQL_URL" | sed -E 's#mysql://([^:]+):.*#\1#')
-          MYSQL_PASSWORD=$(echo "$MYSQL_URL" | sed -E 's#mysql://[^:]+:([^@]+)@.*#\1#')
-          MYSQL_DATABASE=$(echo "$MYSQL_URL" | sed -E 's#.*/([^/?]+).*#\1#')
-
-          echo "🔄 連線資訊: Host=$MYSQL_HOST, Port=$MYSQL_PORT, User=$MYSQL_USER, Database=$MYSQL_DATABASE"
-
-          # 執行 mysqldump 備份
           mysqldump --column-statistics=0 --single-transaction --quick --lock-tables=false \
-            -h "$MYSQL_HOST" -P "$MYSQL_PORT" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" > backup_$TIMESTAMP.sql
-
-          echo "✅ MySQL 備份成功！"
+            -h $(echo "$MYSQL_URL" | awk -F@ '{print $2}' | cut -d: -f1) \
+            -P $(echo "$MYSQL_URL" | awk -F@ '{print $2}' | cut -d: -f2 | cut -d/ -f1) \
+            -u $(echo "$MYSQL_URL" | awk -F: '{print $2}' | sed 's/\/\///') \
+            -p$(echo "$MYSQL_URL" | awk -F: '{print $3}' | cut -d@ -f1) \
+            $(echo "$MYSQL_URL" | awk -F/ '{print $NF}') > backup_$TIMESTAMP.sql
 
       - name: 推送到 GitHub
         run: |
-          set -x  # 啟用詳細模式
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          
-          # 確保有備份檔案
-          if [ -n "$(git ls-files --others --exclude-standard backup_*.sql)" ]; then
-            git add backup_*.sql
-            git commit -m "🔄 Auto Backup: $(date +'%Y-%m-%d %H:%M:%S')"
-            git push
-          else
-            echo "⚠️ 沒有新的備份檔案可提交"
-          fi
+          git add backup_*.sql
+          git commit -m "🔄 Auto Backup: $(date +'%Y-%m-%d %H:%M:%S')" || echo "No new backups to commit"
+          git push
+
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得專案
+        uses: actions/checkout@v2
+
+      - name: 刪除超過 7 天的備份
+        run: |
+          find . -name "backup_*.sql" -type f -mtime +7 -exec rm -f {} \;
+          git rm $(git ls-files --deleted) || echo "No old backups to remove"
+          git commit -m "🧹 Cleanup old backups" || echo "Nothing to commit"
+          git push || echo "Nothing to push"
