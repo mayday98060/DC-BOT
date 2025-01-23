@@ -60,15 +60,15 @@ async def on_ready():
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
 
-DB_HOST = "mysql.railway.internal"
-DB_PORT = "3306"
-DB_USER = "root"
-DB_PASS = "IebRbauIYseiiwoahmZNbUECpNtoOYpS"
-DB_NAME = "railway"
+MYSQLHOST = "mysql.railway.internal"
+MYSQLPORT = "3306"
+MYSQLUSER = "root"
+MYSQLPASSWORD = "IebRbauIYseiiwoahmZNbUECpNtoOYpS"
+MYSQLDATABASE = "railway"
 
 backup_filename = f"backup_{datetime.datetime.now().strftime('%Y%m%d')}.sql"
 
-backup_cmd = f"mysqldump -h {DB_HOST} -P {DB_PORT} -u {DB_USER} -p{DB_PASS} {DB_NAME} > {backup_filename}"
+backup_cmd = f"mysqldump -h {MYSQLHOST} -P {MYSQLPORT} -u {MYSQLUSER} -p{MYSQLPASSWORD} {MYSQLDATABASE} > {backup_filename}"
 subprocess.run(backup_cmd, shell=True)
 print(f"✅ 已備份 MySQL 到 {backup_filename}")
 
