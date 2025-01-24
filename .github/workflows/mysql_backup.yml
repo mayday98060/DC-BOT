@@ -2,7 +2,7 @@ name: Frequent MySQL Backup and Cleanup
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # 每天 00:00 UTC 執行（台灣時間 08:00）
+    - cron: "0 0 */5 * *"  # 每天 00:00 UTC 執行（台灣時間 08:00）
   workflow_dispatch:  # 允許手動執行
 
 jobs:
