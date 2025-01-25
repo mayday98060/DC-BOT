@@ -26,7 +26,7 @@ from discord.ext import commands, tasks
 from discord.ui import Modal, TextInput
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 from database2 import nirvana_costs, body_training_costs
-from database import song_list, rewards, fortune, items, item_prices, enemies
+from database import song_list, fortune, rewards, items, item_prices, enemies
 from mafia42 import class_skills, class_skills_3, class_skills_4_to_6, class_weights
 
 intents = discord.Intents.default()
@@ -37,7 +37,8 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 bot.remove_command("help")
 restart_message_id = None
 start_time = datetime.datetime.now()
-IMMORTAL_KING_ID = os.getenv("IMMORTAL_KING_ID")
+IMMORTAL_KING_ID = int(os.getenv("IMMORTAL_KING_ID"))
+DC_SERVER_ID = os.getenv("DC_SERVER_ID")
 song_queue = Queue()
 command_lock = {}
 user_stats = {}
@@ -51,26 +52,17 @@ cursor = db.get_cursor()
 @bot.event
 async def on_ready():
     print(f"目前登入身份 --> {bot.user}")
-    activity=discord.CustomActivity("衝破空間壁障中~")
+    activity = discord.CustomActivity("衝破空間壁障中~")
     #online,offline,idle,dnd,invisible
     await bot.change_presence(status=discord.Status.online, activity=activity)
     try:
+        guild = discord.Object(DC_SERVER_ID)
+        synced = await bot.tree.sync(guild=guild) 
         synced = await bot.tree.sync()
         print(f"✅ 成功同步 {len(synced)} 個指令！")
+        asyncio.create_task(scheduled_reward())
     except Exception as e:
         print(f"❌ 無法同步指令: {e}")
-
-MYSQLHOST = "monorail.proxy.rlwy.net"
-MYSQLPORT = "18424"  # Railway 提供的端口
-MYSQLUSER = "root"
-MYSQLPASSWORD = "IebRbauIYseiiwoahmZNbUECpNtoOYpS"
-MYSQLDATABASE = "railway"
-
-backup_filename = f"backup_{datetime.datetime.now().strftime('%Y%m%d')}.sql"
-
-backup_cmd = f"mysqldump -h {MYSQLHOST} -P {MYSQLPORT} -u {MYSQLUSER} -p{MYSQLPASSWORD} {MYSQLDATABASE} > {backup_filename}"
-subprocess.run(backup_cmd, shell=True)
-print(f"✅ 已備份 MySQL 到 {backup_filename}")
 
 @bot.tree.command(name="幫助", description="指令列表")
 async def 幫助(interaction: discord.Interaction):
@@ -115,7 +107,7 @@ async def 修仙世界(interaction: discord.Interaction):
 def use_item(user_id, item_name, in_combat):
     try:
         cursor.execute(
-            "SELECT quantity, effect, use_restriction FROM inventory WHERE user_id = %s AND item_name = %s",
+            "SELECT quantity, effect, use_restriction FROM inventory WHERE user_id = ? AND item_name = ?",
             (user_id, item_name),
         )
         result = cursor.fetchone()
@@ -134,54 +126,54 @@ def use_item(user_id, item_name, in_combat):
             return "這個道具只能在戰鬥中使用！"
 
         cursor.execute(
-            "UPDATE inventory SET quantity = quantity - 1 WHERE user_id = %s AND item_name = %s",
+            "UPDATE inventory SET quantity = quantity - 1 WHERE user_id = ? AND item_name = ?",
             (user_id, item_name),
         )
 
         if effect == "heal":
             cursor.execute(
-                "SELECT health, current_health FROM users WHERE user_id = %s",
+                "SELECT health, current_health FROM users WHERE user_id = ?",
                 (user_id, ))
             max_health, current_health = cursor.fetchone()
             new_health = min(current_health + 50, max_health)
             cursor.execute(
-                "UPDATE users SET current_health = %s WHERE user_id = %s",
+                "UPDATE users SET current_health = ? WHERE user_id = ?",
                 (new_health, user_id))
         elif effect == "buff_attack":
-            cursor.execute("SELECT temp_attack FROM users WHERE user_id = %s",
+            cursor.execute("SELECT temp_attack FROM users WHERE user_id = ?",
                            (user_id, ))
             temp_attack = cursor.fetchone()[0]
             new_temp_attack = temp_attack + 10
             cursor.execute(
-                "UPDATE users SET temp_attack = %s WHERE user_id = %s",
+                "UPDATE users SET temp_attack = ? WHERE user_id = ?",
                 (new_temp_attack, user_id))
         elif effect == "buff_defense":
-            cursor.execute("SELECT temp_defense FROM users WHERE user_id = %s",
+            cursor.execute("SELECT temp_defense FROM users WHERE user_id = ?",
                            (user_id, ))
             temp_defense = cursor.fetchone()[0]
             new_temp_defense = temp_defense + 5
             cursor.execute(
-                "UPDATE users SET temp_defense = %s WHERE user_id = %s",
+                "UPDATE users SET temp_defense = ? WHERE user_id = ?",
                 (new_temp_defense, user_id))
         elif effect == "gain_cultivation":
-            cursor.execute("SELECT cultivation FROM users WHERE user_id = %s",
+            cursor.execute("SELECT cultivation FROM users WHERE user_id = ?",
                            (user_id, ))
             current_cultivation = cursor.fetchone()[0]
             new_cultivation = current_cultivation + 100
             cursor.execute(
-                "UPDATE users SET cultivation = %s WHERE user_id = %s",
+                "UPDATE users SET cultivation = ? WHERE user_id = ?",
                 (new_cultivation, user_id))
         elif effect == "gain_quench":
-            cursor.execute("SELECT quench FROM users WHERE user_id = %s",
+            cursor.execute("SELECT quench FROM users WHERE user_id = ?",
                            (user_id, ))
             current_quench = cursor.fetchone()[0]
             new_quench = current_quench + 100
-            cursor.execute("UPDATE users SET quench = %s WHERE user_id = %s",
+            cursor.execute("UPDATE users SET quench = ? WHERE user_id = ?",
                            (new_quench, user_id))
         else:
             return "未知效果的道具無法使用！"
 
-        db.commit()
+        conn.commit()
         return f"你成功使用了 {item_name}！"
 
     except Exception as e:
@@ -191,10 +183,10 @@ def use_item(user_id, item_name, in_combat):
 
 def end_combat(user_id):
     cursor.execute(
-        "UPDATE users SET temp_attack = 0, temp_defense = 0 WHERE user_id = %s",
+        "UPDATE users SET temp_attack = 0, temp_defense = 0 WHERE user_id = ?",
         (user_id, ),
     )
-    db.commit()
+    conn.commit()
     return "戰鬥結束，臨時加成已清除！"
 
 class PurchaseView(View):
@@ -265,7 +257,7 @@ class QuantitySelect(Select):
         price = item_prices[item_name]
         total_cost = price * quantity
 
-        cursor.execute("SELECT spirit_stone FROM users WHERE user_id = %s",
+        cursor.execute("SELECT spirit_stone FROM users WHERE user_id = ?",
                        (user_id, ))
         result = cursor.fetchone()
         if not result or result[0] < total_cost:
@@ -276,33 +268,103 @@ class QuantitySelect(Select):
             return
 
         cursor.execute(
-            "UPDATE users SET spirit_stone = spirit_stone - %s WHERE user_id = %s",
+            "UPDATE users SET spirit_stone = spirit_stone - ? WHERE user_id = ?",
             (total_cost, user_id),
         )
         cursor.execute(
             """
             INSERT INTO inventory (user_id, item_name, quantity)
-            VALUES (%s, %s, %s)
-            ON DUPLICATE KEY UPDATE quantity = quantity + %s;
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id, item_name)
+            DO UPDATE SET quantity = quantity + ?;
             """,
             (user_id, item_name, quantity, quantity),
         )
-        db.commit()
+        conn.commit()
 
         await interaction.response.send_message(
             f"成功購買 **{item_name}** {quantity} 個！花費了 {total_cost} 靈石。",
             ephemeral=True,
         )
 
-@bot.command()
-async def rank(ctx):
-    rank = discord.Embed(title="🌸排行榜清單🌸",
-                         description="",
-                         color=discord.Color.gold())
-    rank.add_field(name="🏆/境界rank🏆", value="境界層數排行榜", inline=False)
-    rank.add_field(name="🏆/問答遊戲rank🏆", value="問答遊戲排行榜", inline=False)
+@bot.tree.command(name="購買道具", description="使用靈石購買")
+async def 商店(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    try:
+        cursor.execute("SELECT spirit_stone FROM users WHERE user_id = ?",
+                       (user_id, ))
+        result = cursor.fetchone()
+        if not result:
+            await interaction.response.send_message("你還不是修煉者！使用 /入道 指令進入修仙之旅。",
+                                                    ephemeral=True)
+            return
 
-    await ctx.send(embed=rank, ephemeral=True)
+        view = PurchaseView(user_id)
+        await interaction.response.send_message("選擇你想購買的道具：",
+                                                view=view,
+                                                ephemeral=True)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        await interaction.response.send_message("發生錯誤，請稍後再試！", ephemeral=True)
+
+@bot.tree.command(name="使用道具", description="在戰鬥中或戰鬥外使用道具")
+async def 使用道具(interaction: discord.Interaction):
+    user_id = interaction.user.id
+    in_combat = user_id in battle_states
+
+    cursor.execute(
+        "SELECT item_name, quantity, use_restriction FROM inventory WHERE user_id = ? AND quantity > 0",
+        (user_id, ))
+    inventory_items = cursor.fetchall()
+
+    if not inventory_items:
+        await interaction.response.send_message("你沒有任何可用的道具！", ephemeral=True)
+        return
+
+    options = [
+        discord.SelectOption(label=item[0],
+                             description=f"數量: {item[1]}",
+                             value=item[0]) for item in inventory_items
+        if item[2] in ["both", "combat" if in_combat else "non_combat"]
+    ]
+
+    if not options:
+        await interaction.response.send_message("你目前沒有可用的道具！", ephemeral=True)
+        return
+
+    view = UseItemView(user_id, options, in_combat=in_combat)
+    await interaction.response.send_message("選擇你要使用的道具：",
+                                            view=view,
+                                            ephemeral=True)
+
+class UseItemView(discord.ui.View):
+
+    def __init__(self, user_id, options, in_combat):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+        self.in_combat = in_combat  # 添加 in_combat 屬性
+        self.add_item(UseItemSelect(user_id, options, in_combat))
+
+class UseItemSelect(discord.ui.Select):
+
+    def __init__(self, user_id, options, in_combat):
+        self.user_id = user_id
+        self.in_combat = in_combat
+        super().__init__(placeholder="選擇一個道具使用...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("這不是你的道具，無法操作！",
+                                                    ephemeral=True)
+            return
+
+        item_name = self.values[0]
+        result_message = use_item(self.user_id, item_name,
+                                  self.in_combat)  # 傳遞 in_combat 狀態
+
+        await interaction.response.send_message(result_message, ephemeral=True)
+
 
 @bot.tree.command(name="狀態", description="查看機器人狀態")
 async def 狀態(interaction: discord.Interaction):
@@ -325,8 +387,10 @@ async def 狀態(interaction: discord.Interaction):
     total_memory = memory_info.total // (1024 * 1024)
     used_memory = memory_info.used // (1024 * 1024)
 
+    instructions = len(synced)
+
     embed = discord.Embed(title="🌸小新#6500🌸",
-                          description="版本:2.0.0",
+                          description="版本:1.0.3",
                           color=discord.Color.pink())
     embed.add_field(name="💻伺服器💻", value=f"{server_count}", inline=False)
     embed.add_field(name="👤成員👤", value=f"{user_count}", inline=False)
@@ -337,10 +401,9 @@ async def 狀態(interaction: discord.Interaction):
                     inline=False)
     embed.add_field(name="💾總內存💾", value=f"{total_memory}MB", inline=False)
     embed.add_field(name="💾已使用內存💾", value=f"{used_memory}MB", inline=False)
-    embed.add_field(name="✶1.1.0更新內容✶", value=f"將資料庫替換為MYSQL，且機器人能夠在雲端環境運行", inline=False)
+    embed.add_field(name="✶1.1.0更新內容✶", value=f"將傳統指令轉換成slash指令", inline=False)
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 def get_user_data(user_id):
     if user_id not in user_stats:
@@ -369,7 +432,7 @@ def get_skill_icon(skill_name):
     return None
 
 @bot.tree.command(name="抽卡", description="mafia42抽卡")
-async def slash_抽卡(interaction: discord.Interaction):
+async def 抽卡(interaction: discord.Interaction):
     user_id = interaction.user.id
     user_data = get_user_data(user_id)
 
@@ -454,7 +517,7 @@ def clean_up_cache():
     if restart_message_id:
         restart_message_id = None
 
-@bot.tree.command(name="重啟", description="重新啟動")
+@bot.tree.command(name="重啟", description="重新啟動機器人", guild=discord.Object(DC_SERVER_ID))
 async def 重啟(interaction: discord.Interaction):
     if interaction.user.id == IMMORTAL_KING_ID:
         await interaction.response.send_message("世界意志重啟中...", ephemeral=True)
@@ -467,16 +530,20 @@ async def 重啟(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("世界基礎規則，凡人無法撼動。", ephemeral=True)
 
-@bot.command()
-async def 關閉(ctx):
-    if ctx.author.id == IMMORTAL_KING_ID:
-        restart_message = await ctx.send('世界意志即將關閉...', ephemeral=True)
-        await ctx.message.delete()
-        await restart_message.delete()
-        await ctx.send("世界意志關閉完成！", ephemeral=True)
+@bot.tree.command(name="關閉", description="關閉機器人", guild=discord.Object(DC_SERVER_ID))
+async def 關閉(interaction: discord.Interaction):
+    if interaction.user.id == IMMORTAL_KING_ID:
+        await interaction.response.defer(ephemeral=True)
+
+        await interaction.followup.send('世界意志即將關閉...', ephemeral=True)
+
         await bot.close()
     else:
-        await ctx.send('世界基礎規則，凡人無法撼動。', ephemeral=True)
+        await interaction.response.send_message('世界基礎規則，凡人無法撼動。', ephemeral=True)
+
+class 音樂群組(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="音樂", description="查看排行榜並發放獎勵")
 
 @bot.tree.command(name="加入語音", description="讓機器人加入您的語音頻道")
 async def 加入語音(interaction: discord.Interaction):
@@ -542,7 +609,7 @@ async def 播放(interaction: discord.Interaction):
             song_number = int(select_interaction.data['values'][0])
             mp3_file = os.path.join("music", song_list[song_number])
             if os.path.exists(mp3_file):
-                song_queue.put((mp3_file, 0.5))
+                song_queue.put((mp3_file, 0.5))  # 預設音量為 0.5
                 song_name = os.path.basename(mp3_file)
                 await select_interaction.response.send_message(
                     f"{song_name} 已加入播放隊列", ephemeral=True)
@@ -575,9 +642,12 @@ async def play_next_song(interaction: discord.Interaction):
     if not song_queue.empty():
         mp3_file, volume = song_queue.get()
 
+        # 1) 先建立 FFmpegPCMAudio
         source = FFmpegPCMAudio(executable="ffmpeg", source=mp3_file)
+        # 2) 再用 PCMVolumeTransformer 包起來，初始音量 = volume
         transformed_source = PCMVolumeTransformer(source, volume=volume)
 
+        # 3) 播放 transformed_source
         voice_client.play(
             transformed_source,
             after=lambda e: asyncio.run_coroutine_threadsafe(
@@ -768,58 +838,67 @@ async def 占卜(interaction: discord.Interaction):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(name="靈石", description="查看你當前的靈石數量。")
+@bot.tree.command(name="靈石", description="查看玩家當前靈石數量。")
 async def 靈石(interaction: discord.Interaction):
     user_id = interaction.user.id
 
-    cursor.execute("SELECT spirit_stone FROM users WHERE user_id=?",
-                   (user_id, ))
+    cursor.execute("SELECT spirit_stone FROM users WHERE user_id=%s", (user_id,))
     result = cursor.fetchone()
 
     if not result:
-        await interaction.response.send_message("您還不是修煉者，請先使用【入道】指令。", ephemeral=True)
+        await interaction.response.send_message("❌ 您還不是修煉者，請先使用 `/入道` 指令。", ephemeral=True)
     else:
         spirit_stone = result[0]
-        await interaction.response.send_message(f"你目前持有的靈石數量：{spirit_stone}", ephemeral=True)
+        await interaction.response.send_message(f"💎 你目前持有的靈石數量：{spirit_stone}", ephemeral=True)
 
-@bot.command()
-async def 修改靈石(ctx, user: discord.User, 靈石: int):
-    if ctx.author.id != IMMORTAL_KING_ID:
-        await ctx.send("世界基礎規則，凡人無法撼動。", ephemeral=True)
+@bot.tree.command(name="修改靈石", description="修改玩家的靈石數量", guild=discord.Object(DC_SERVER_ID))
+async def 修改靈石(interaction: discord.Interaction, user: discord.User, 靈石: int):
+    if interaction.user.id != IMMORTAL_KING_ID:
+        await interaction.response.send_message("⚠️ 你沒有權限執行此操作！", ephemeral=True)
         return
 
     user_id = user.id
 
-    cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id, ))
+    cursor.execute("SELECT * FROM users WHERE user_id=%s", (user_id,))
     users = cursor.fetchone()
 
     if users is None:
-        await ctx.send("您還不是修煉者，請先使用【入道】指令。", ephemeral=True)
+        await interaction.response.send_message("❌ 該用戶還不是修煉者，請先使用 `/入道` 指令。", ephemeral=True)
         return
 
-    cursor.execute("UPDATE users SET spirit_stone=? WHERE user_id=?",
-                   (靈石, user_id))
+    cursor.execute("UPDATE users SET spirit_stone=%s WHERE user_id=%s", (靈石, user_id))
     conn.commit()
 
-    await ctx.send(f"用戶 {user.mention} 的靈石數量已更新。", ephemeral=True)
+    await interaction.response.send_message(f"✅ 成功修改 **{user.mention}** 的靈石數量為 **{靈石}** 💎", ephemeral=True)
 
-@bot.command()
-async def 查看修煉者資料(ctx):
-    if ctx.author.id != IMMORTAL_KING_ID:
-        await ctx.send("世界基礎規則，凡人無法撼動。", ephemeral=True)
+@bot.tree.command(name="查看修煉者資料", description="查看所有修煉者的資料", guild=discord.Object(DC_SERVER_ID))
+@app_commands.checks.has_permissions(administrator=True)
+async def 查看修煉者資料(interaction: discord.Interaction):
+    if interaction.user.id != IMMORTAL_KING_ID:
+        await interaction.response.send_message("⚠️ 你沒有權限執行此操作！", ephemeral=True)
         return
 
     cursor.execute("SELECT user_id, spirit_stone, level, layer FROM users")
     users = cursor.fetchall()
 
+    if not users:
+        await interaction.response.send_message("❌ 目前沒有修煉者數據！", ephemeral=True)
+        return
+
     users_table = "```\n"
-    users_table += f"{'用户ID': <20}{'靈石': <10}{'境界': <10}{'層數': <10}\n"
-    for data in users:
-        user_id, spirit_stone, level, layer = data
-        users_table += f"{str(user_id): <20}{str(spirit_stone): <10}{str(level): <10}{str(layer): <10}\n"
+    users_table += f"{'用戶名稱': <20}{'靈石': <10}{'境界': <10}{'層數': <10}\n"
+    
+    for user_data in users:
+        user_id, spirit_stone, level, layer = user_data
+        user = interaction.guild.get_member(user_id) or await bot.fetch_user(user_id)
+        username = user.display_name if user else f"未知用戶 (ID: {user_id})"
+
+        users_table += f"{username: <20}{str(spirit_stone): <10}{str(level): <10}{str(layer): <10}\n"
+
     users_table += "```"
 
-    await ctx.send(f"修練者資料總表：\n{users_table}", ephemeral=True)
+    await interaction.response.send_message(f"📜 **修煉者資料總表**：\n{users_table}", ephemeral=True)
+
 
 @bot.tree.command(name="渡劫", description="突破境界！")
 async def 渡劫(interaction: discord.Interaction):
@@ -1290,6 +1369,311 @@ async def 挑戰(interaction: discord.Interaction):
         view=view, ephemeral=True
     )
 
+# ==================================================
+#                  📌 排行榜相關指令
+# ==================================================
+
+class 排行榜群組(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="排行榜", description="查看排行榜並發放獎勵")
+
+    @app_commands.command(name="境界", description="查看境界排行榜")
+    async def 境界(self, interaction: discord.Interaction):
+        leaderboard_data = get_leaderboard()
+
+        if leaderboard_data:
+            leaderboard_message = ""
+            for index, (user_id, level, layer) in enumerate(leaderboard_data, start=1):
+                user = interaction.guild.get_member(user_id) or await bot.fetch_user(user_id)
+                username = user.display_name if user else f"未知用戶 (ID: {user_id})"
+
+                leaderboard_message += f"{index}. {username} - {level} {layer}\n"
+
+            embed = discord.Embed(title="🏆 境界排行榜 🏆",
+                                  description=leaderboard_message,
+                                  color=discord.Color.gold())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 暫無排行榜數據。", ephemeral=True)
+
+    @app_commands.command(name="問答遊戲", description="查看問答遊戲排行榜")
+    async def 問答遊戲(self, interaction: discord.Interaction):
+        leaderboard_data = get_quiz_game_leaderboard()
+
+        if leaderboard_data:
+            leaderboard_message = ""
+            for index, (user_id, correct_answers) in enumerate(leaderboard_data, start=1):
+                user = interaction.guild.get_member(user_id) or await bot.fetch_user(user_id)
+                username = user.display_name if user else f"未知用戶 (ID: {user_id})"
+
+                leaderboard_message += f"{index}. {username} - 答對次數：{correct_answers}\n"
+
+            embed = discord.Embed(title="🏆 問答遊戲排行榜 🏆",
+                                  description=leaderboard_message,
+                                  color=discord.Color.gold())
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 暫無排行榜數據。", ephemeral=True)
+
+@bot.tree.command(name="發放獎勵", description="發放排行榜獎勵並重置問答遊戲排行榜", guild=discord.Object(DC_SERVER_ID))
+async def 發放獎勵(interaction: discord.Interaction):
+    await interaction.response.send_message("🛠️ 正在發放排行榜獎勵，請稍候...", ephemeral=True)
+        
+    await reward_players()
+
+
+    await interaction.followup.send("✅ 排行榜獎勵發放完畢！問答遊戲排行榜已重置。", ephemeral=True)
+
+def get_leaderboard():
+    cursor.execute(
+        "SELECT user_id, level, layer FROM users ORDER BY level DESC, layer ASC LIMIT 50"
+    )
+    return cursor.fetchall()
+
+def get_quiz_game_leaderboard():
+    cursor.execute(
+        "SELECT user_id, correct_answers FROM users WHERE correct_answers > 0 ORDER BY correct_answers DESC LIMIT 50"
+    )
+    return cursor.fetchall()
+
+
+async def reward_players():
+    quiz_leaderboard = get_quiz_game_leaderboard()
+    leaderboard_data = get_leaderboard()
+    
+    for index, (user_id, correct_answers) in enumerate(quiz_leaderboard, start=0):
+        reward1 = max(300 - (index * 5), 10)  # 第一名 100 靈石，依排名遞減 5 靈石，最低 10 靈石
+        cursor.execute("UPDATE users SET spirit_stone = spirit_stone + %s WHERE user_id = %s", (reward1, user_id))
+
+        user = await bot.fetch_user(user_id)  # 獲取使用者物件
+        if user:
+            try:
+                await user.send(f"🏆 恭喜！你在問答排行榜中排名 **{index+1}**，獲得 **{reward1} 靈石**！🎉\n"
+                                "請使用 `/靈石` 指令查看你的靈石數量！")
+            except discord.Forbidden:
+                print(f"❌ 無法發送 DM 給 {user_id}，可能關閉了私訊。")
+
+    for index, (user_id, lavel, layer) in enumerate(leaderboard_data, start=0):
+        reward2 = max(300 - (index * 5), 10)  # 第一名 100 靈石，依排名遞減 5 靈石，最低 10 靈石
+        cursor.execute("UPDATE users SET spirit_stone = spirit_stone + %s WHERE user_id = %s", (reward2, user_id))
+        
+        user = await bot.fetch_user(user_id)  # 獲取使用者物件
+        if user:
+            try:
+                await user.send(f"🏆 恭喜！你在境界排行榜中排名 **{index+1}**，獲得 **{reward2} 靈石**！🎉\n"
+                                "請使用 `/靈石` 指令查看你的靈石數量！")
+            except discord.Forbidden:
+                print(f"❌ 無法發送 DM 給 {user_id}，可能關閉了私訊。")
+
+    cursor.execute("UPDATE users SET correct_answers = 0")  # 重置問答排行榜
+    conn.commit()
+
+async def scheduled_reward():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        now = datetime.datetime.now()
+        if now.weekday() == 6 and now.hour == 0:  # 星期日凌晨 12 點
+            print("✅ 自動發放排行榜獎勵！")
+            reward_players()
+            await asyncio.sleep(86400)  # 等待一天，避免重複發獎
+        await asyncio.sleep(3600)  # 每小時檢查一次
+
+
+bot.tree.add_command(排行榜群組())
+
+# ==================================================
+#                  📌 遊戲相關指令
+# ==================================================
+
+class 遊戲群組(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="遊戲", description="遊戲類的指令")
+
+    @app_commands.command(name="1a2b", description="來挑戰 1A2B 遊戲，賺取靈石！")
+    async def play1a2b(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+
+        if user_id in command_lock and command_lock[user_id]:
+            await interaction.response.send_message("請等待當前指令執行完畢後再使用。", ephemeral=True)
+            return
+
+        if interaction.channel.type != discord.ChannelType.private:
+            await interaction.response.send_message("此指令僅在私訊中可用，請私訊機器人後再試！",
+                                                    ephemeral=True)
+            return
+
+        command_lock[user_id] = True
+
+        try:
+            cursor.execute("SELECT spirit_stone FROM users WHERE user_id=%s", (user_id, ))
+            result = cursor.fetchone()
+
+            if not result:
+                await interaction.response.send_message("請另尋財路，找不到你的帳戶。", ephemeral=True)
+                return
+
+            spirit_stone = result[0]
+            if spirit_stone < 10:
+                await interaction.response.send_message("你的靈石不足以參加遊戲，請確保有至少 10 靈石！", ephemeral=True)
+                return
+
+            answer = random.sample(range(1, 10), 4)
+            a, b, attempts = 0, 0, 0
+
+            await interaction.response.send_message(
+                "1A2B 遊戲開始！請輸入一個不重複的四位數字（每次限時 60 秒）。", ephemeral=True)
+
+            def check_guess(message: discord.Message):
+                return (message.author == interaction.user
+                        and message.channel == interaction.channel
+                        and len(message.content) == 4
+                        and message.content.isdigit()
+                        and len(set(message.content)) == 4)
+
+            while a != 4:
+                try:
+                    guess_message = await bot.wait_for("message", timeout=60, check=check_guess)
+                    user_guess = list(map(int, guess_message.content))
+                    attempts += 1
+                    a, b = 0, 0
+
+                    for i in range(4):
+                        if user_guess[i] == answer[i]:
+                            a += 1
+                        elif user_guess[i] in answer:
+                            b += 1
+
+                    await interaction.followup.send(f"{a}A{b}B", ephemeral=True)
+
+                except asyncio.TimeoutError:
+                    await interaction.followup.send("操作超時，遊戲結束。", ephemeral=True)
+                    command_lock[user_id] = False
+                    return
+
+            new_spirit_stone = spirit_stone + 10
+            cursor.execute("UPDATE users SET spirit_stone=%s WHERE user_id=%s", (new_spirit_stone, user_id))
+            conn.commit()
+
+            await interaction.followup.send(
+                f"恭喜你答對了！答案是 {''.join(map(str, answer))}，總共猜了 {attempts} 次。\n靈石 +10，你現在有 {new_spirit_stone} 靈石！",
+                ephemeral=True,
+            )
+
+        except Exception as e:
+            print(f"發生錯誤: {e}")
+            await interaction.followup.send("發生錯誤，請稍後再試。", ephemeral=True)
+
+        finally:
+            command_lock[user_id] = False
+
+    @app_commands.command(name="猜拳", description="參加猜拳遊戲，賺取或損失靈石！")
+    async def 猜拳(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+
+        if user_id in command_lock and command_lock[user_id]:
+            await interaction.response.send_message("請等待當前指令執行完畢後再使用。", ephemeral=True)
+            return
+
+        command_lock[user_id] = True
+
+        try:
+            cursor.execute("SELECT spirit_stone FROM users WHERE user_id=%s", (user_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                await interaction.response.send_message("請先使用 `/入道`，獲取靈石", ephemeral=True)
+                return
+
+            spirit_stone = result[0]
+
+            if spirit_stone < 10:
+                await interaction.response.send_message("請達到 10 靈石再來參加遊戲！", ephemeral=True)
+                return
+
+            class GuessView(discord.ui.View):
+                def __init__(self, user_id: int, spirit_stone: int):
+                    super().__init__(timeout=15)
+                    self.user_id = user_id
+                    self.spirit_stone = spirit_stone
+
+                async def process_choice(self, interaction: discord.Interaction, player_choice: str):
+                    if interaction.user.id != self.user_id:
+                        await interaction.response.send_message("這不是你的遊戲！", ephemeral=True)
+                        return
+
+                    bot_choice = random.choice(["✊", "✋", "✌️"])
+                    win_relations = {"✊": "✌️", "✋": "✊", "✌️": "✋"}
+
+                    if player_choice == bot_choice:
+                        result_message = f"🤝 平局！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n🔹 靈石數量不變。"
+                    elif win_relations[player_choice] == bot_choice:
+                        self.spirit_stone += 10
+                        result_message = f"🎉 你贏了！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n💎 靈石 +10，你現在有 {self.spirit_stone} 靈石！"
+                    else:
+                        self.spirit_stone -= 10
+                        result_message = f"😢 你輸了！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n💰 靈石 -10，你現在有 {self.spirit_stone} 靈石！"
+
+                    cursor.execute("UPDATE users SET spirit_stone=%s WHERE user_id=%s", (self.spirit_stone, self.user_id))
+                    conn.commit()
+
+                    await interaction.response.edit_message(content=result_message, view=None)
+
+                @discord.ui.button(label="石頭", emoji="✊", style=discord.ButtonStyle.primary)
+                async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
+                    await self.process_choice(interaction, "✊")
+
+                @discord.ui.button(label="布", emoji="✋", style=discord.ButtonStyle.success)
+                async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
+                    await self.process_choice(interaction, "✋")
+
+                @discord.ui.button(label="剪刀", emoji="✌️", style=discord.ButtonStyle.danger)
+                async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
+                    await self.process_choice(interaction, "✌️")
+
+            view = GuessView(user_id=user_id, spirit_stone=spirit_stone)
+            await interaction.response.send_message("✊✋✌️ 猜拳遊戲開始！請選擇你的拳頭：", view=view, ephemeral=True)
+
+        except Exception as e:
+            print(f"發生錯誤: {e}")
+            await interaction.followup.send("發生錯誤，請稍後再試。", ephemeral=True)
+
+        finally:
+            command_lock[user_id] = False
+
+    @app_commands.command(name="問答", description="進行一場問答遊戲")
+    async def 問答(self, interaction: discord.Interaction):
+        user_id = interaction.user.id
+        if user_id in command_lock and command_lock[user_id]:
+            await interaction.response.send_message("請等待當前指令執行完畢後再使用。", ephemeral=True)
+            return
+
+        command_lock[user_id] = True
+
+        try:
+            selected_question = random.choice(question_pool)
+            question = selected_question['question']
+            options = selected_question['options']
+
+            random.shuffle(options)
+            correct_answer_index = options.index(selected_question['correct_answer'])
+
+            view = QuizView(user_id, correct_answer_index)
+            for i, option in enumerate(options):
+                view.children[i].label = option 
+
+            await interaction.response.send_message(f"📝 **問答遊戲**：\n\n{question}", view=view, ephemeral=True)
+
+            await view.wait()
+
+            if not view.answer_selected:
+                await interaction.followup.send(f"⏳ {interaction.user.mention} 答題超時，請在時間內作答。", ephemeral=True)
+
+        except Exception as e:
+            print(f"發生錯誤: {e}")
+            await interaction.followup.send("⚠️ 發生錯誤，請稍後再試。", ephemeral=True)
+
+        finally:
+            command_lock[user_id] = False
 
 class QuizView(discord.ui.View):
 
@@ -1299,326 +1683,47 @@ class QuizView(discord.ui.View):
         self.correct_answer_index = correct_answer_index
         self.answer_selected = False
 
-    @discord.ui.button(label="選項 1", style=discord.ButtonStyle.primary, row=0)
-    async def option_1(self, interaction: discord.Interaction,
-                       button: discord.ui.Button):
+    @discord.ui.button(label="選項 1️⃣", style=discord.ButtonStyle.primary, row=0)
+    async def option_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_answer(interaction, 0)
 
-    @discord.ui.button(label="選項 2", style=discord.ButtonStyle.primary, row=0)
-    async def option_2(self, interaction: discord.Interaction,
-                       button: discord.ui.Button):
+    @discord.ui.button(label="選項 2️⃣", style=discord.ButtonStyle.primary, row=0)
+    async def option_2(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_answer(interaction, 1)
 
-    @discord.ui.button(label="選項 3", style=discord.ButtonStyle.primary, row=1)
-    async def option_3(self, interaction: discord.Interaction,
-                       button: discord.ui.Button):
+    @discord.ui.button(label="選項 3️⃣", style=discord.ButtonStyle.primary, row=1)
+    async def option_3(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_answer(interaction, 2)
 
-    @discord.ui.button(label="選項 4", style=discord.ButtonStyle.primary, row=1)
-    async def option_4(self, interaction: discord.Interaction,
-                       button: discord.ui.Button):
+    @discord.ui.button(label="選項 4️⃣", style=discord.ButtonStyle.primary, row=1)
+    async def option_4(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.handle_answer(interaction, 3)
 
-    async def handle_answer(self, interaction: discord.Interaction,
-                            answer_index):
+    async def handle_answer(self, interaction: discord.Interaction, answer_index):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("這不是你的問答遊戲！",
-                                                    ephemeral=True)
+            await interaction.response.send_message("⚠️ 這不是你的問答遊戲！", ephemeral=True)
             return
 
         if self.answer_selected:
-            await interaction.response.send_message("你已經回答過這個問題！",
-                                                    ephemeral=True)
+            await interaction.response.send_message("⚠️ 你已經回答過這個問題！", ephemeral=True)
             return
 
         self.answer_selected = True
 
         if answer_index == self.correct_answer_index:
-            await interaction.response.send_message(
-                f"{interaction.user.mention} 回答正確！", ephemeral=True)
-            cursor.execute(
-                "UPDATE users SET correct_answers = correct_answers + 1 WHERE user_id = ?",
-                (self.user_id, ))
+            await interaction.response.send_message(f"✅ {interaction.user.mention} 回答正確！", ephemeral=True)
+            cursor.execute("UPDATE users SET correct_answers = correct_answers + 1 WHERE user_id = %s", (self.user_id,))
             conn.commit()
         else:
-            await interaction.response.send_message(
-                f"{interaction.user.mention} 回答錯誤。", ephemeral=True)
+            await interaction.response.send_message(f"❌ {interaction.user.mention} 回答錯誤。", ephemeral=True)
 
         self.stop()
 
+bot.tree.add_command(遊戲群組())
 
-@bot.tree.command(name="問答遊戲", description="進行一場問答遊戲")
-async def 問答遊戲(interaction: discord.Interaction):
-    user_id = interaction.user.id
-    if user_id in command_lock and command_lock[user_id]:
-        await interaction.response.send_message("請等待當前指令執行完畢後再使用。",
-                                                ephemeral=True)
-        return
-
-    command_lock[user_id] = True
-
-    try:
-        selected_question = random.choice(question_pool)
-        question = selected_question['question']
-        options = selected_question['options']
-
-        random.shuffle(options)
-        correct_answer_index = options.index(
-            selected_question['correct_answer'])
-
-        view = QuizView(user_id, correct_answer_index)
-        for i, option in enumerate(options):
-            view.children[i].label = option
-
-        await interaction.response.send_message(f"問答遊戲：\n\n{question}",
-                                                view=view, ephemeral=True)
-
-        await view.wait()
-
-        if not view.answer_selected:
-            await interaction.followup.send(
-                f"{interaction.user.mention} 答題超時，請在時間內作答。", ephemeral=True)
-    finally:
-        command_lock[user_id] = False
-
-
-def get_leaderboard():
-    cursor.execute(
-        "SELECT user_id, level, layer FROM users ORDER BY level DESC, layer ASC LIMIT 10"
-    )
-    leaderboard_data = cursor.fetchall()
-    return leaderboard_data
-
-
-def get_quiz_game_leaderboard():
-    cursor.execute(
-        "SELECT user_id, correct_answers FROM users WHERE correct_answers > 0 ORDER BY correct_answers DESC LIMIT 10"
-    )
-    leaderboard_data = cursor.fetchall()
-    return leaderboard_data
-
-
-@bot.tree.command(name="境界rank", description="查看境界排行榜")
-async def 境界rank(interaction: discord.Interaction):
-    leaderboard_data = get_leaderboard()
-
-    if leaderboard_data:
-        leaderboard_message = ""
-        for index, (user_id, level, layer) in enumerate(leaderboard_data,
-                                                        start=1):
-            user = interaction.guild.get_member(user_id)
-            if user:
-                leaderboard_message += f"{index}. {user.display_name} - {level} {layer}\n"
-            else:
-                leaderboard_message += f"{index}. UserID: {user_id} - {level} {layer}\n"
-
-        embed = discord.Embed(title="境界排行榜 :",
-                              description=leaderboard_message,
-                              color=discord.Color.gold())
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    else:
-        await interaction.response.send_message("暫無排行榜數據。", ephemeral=True)
-
-
-@bot.tree.command(name="問答遊戲rank", description="查看問答遊戲的排行榜")
-async def 問答遊戲rank(interaction: discord.Interaction):
-    leaderboard_data = get_quiz_game_leaderboard()
-
-    if leaderboard_data:
-        leaderboard_message = ""
-        for index, (user_id, correct_answers) in enumerate(leaderboard_data,
-                                                           start=1):
-            user = interaction.guild.get_member(user_id)
-            if user:
-                leaderboard_message += f"{index}. {user.display_name} - 答對次數：{correct_answers}\n"
-            else:
-                leaderboard_message += f"{index}. UserID: {user_id} - 答對次數：{correct_answers}\n"
-
-        embed = discord.Embed(title="問答遊戲排行榜：",
-                              description=leaderboard_message,
-                              color=discord.Color.gold())
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-    else:
-        await interaction.response.send_message("暫無排行榜數據。", ephemeral=True)
-
-
-@bot.tree.command(name="猜拳", description="參加猜拳遊戲，賺取或損失靈石！")
-async def 猜拳(interaction: discord.Interaction):
-    user_id = interaction.user.id
-
-    if command_lock.get(user_id):
-        await interaction.response.send_message("請等待當前指令執行完畢後再使用。",
-                                                ephemeral=True)
-        return
-
-    command_lock[user_id] = True
-
-    try:
-        cursor.execute("SELECT spirit_stone FROM users WHERE user_id=?",
-                       (user_id, ))
-        result = cursor.fetchone()
-
-        if not result:
-            await interaction.response.send_message("請先使用/入道，獲取靈石",
-                                                    ephemeral=True)
-            return
-
-        spirit_stone = result[0]
-
-        if spirit_stone < 10:
-            await interaction.response.send_message("請達到 10 靈石再來參加遊戲！",
-                                                    ephemeral=True)
-            return
-
-        class GuessView(discord.ui.View):
-
-            def __init__(self, user_id: int, spirit_stone: int):
-                super().__init__(timeout=15)
-                self.user_id = user_id
-                self.spirit_stone = spirit_stone
-
-            async def process_choice(self, interaction: discord.Interaction,
-                                     player_choice: str):
-                if interaction.user.id != self.user_id:
-                    await interaction.response.send_message("這不是你的遊戲！",
-                                                            ephemeral=True)
-                    return
-
-                bot_choice = random.choice(["✊", "✋", "✌️"])
-                win_relations = {"✊": "✌️", "✋": "✊", "✌️": "✋"}
-
-                if player_choice == bot_choice:
-                    result_message = f"平局！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n平局 ! 靈石數量不變。"
-                elif win_relations[player_choice] == bot_choice:
-                    self.spirit_stone += 10
-                    result_message = f"你贏了！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n靈石+10，你現在有 {self.spirit_stone} 靈石！"
-                else:
-                    self.spirit_stone -= 10
-                    result_message = f"你輸了！你選擇了 {player_choice}，機器人選擇了 {bot_choice}。\n靈石-10，你現在有 {self.spirit_stone} 靈石！"
-
-                cursor.execute(
-                    "UPDATE users SET spirit_stone=? WHERE user_id=?",
-                    (self.spirit_stone, self.user_id))
-                conn.commit()
-
-                await interaction.response.edit_message(content=result_message,
-                                                        view=None, ephemeral=True)
-
-            @discord.ui.button(label="石頭",
-                               emoji="✊",
-                               style=discord.ButtonStyle.primary)
-            async def rock(self, interaction: discord.Interaction,
-                           button: discord.ui.Button):
-                await self.process_choice(interaction, "✊")
-
-            @discord.ui.button(label="布",
-                               emoji="✋",
-                               style=discord.ButtonStyle.success)
-            async def paper(self, interaction: discord.Interaction,
-                            button: discord.ui.Button):
-                await self.process_choice(interaction, "✋")
-
-            @discord.ui.button(label="剪刀",
-                               emoji="✌️",
-                               style=discord.ButtonStyle.danger)
-            async def scissors(self, interaction: discord.Interaction,
-                               button: discord.ui.Button):
-                await self.process_choice(interaction, "✌️")
-
-        view = GuessView(user_id=user_id, spirit_stone=spirit_stone)
-        await interaction.response.send_message("猜拳遊戲開始！請選擇你的拳頭：", view=view, ephemeral=True)
-
-    except Exception as e:
-        print(f"發生錯誤: {e}")
-        await interaction.followup.send("發生錯誤，請稍後再試。", ephemeral=True)
-
-    finally:
-        command_lock[user_id] = False
-
-
-@bot.tree.command(name="play1a2b", description="來挑戰 1A2B 遊戲，賺取靈石！")
-async def play1a2b(interaction: discord.Interaction):
-    user_id = interaction.user.id
-
-    if command_lock.get(user_id):
-        await interaction.response.send_message("請等待當前指令執行完畢後再使用。",
-                                                ephemeral=True)
-        return
-
-    if interaction.channel.type != discord.ChannelType.private:
-        await interaction.response.send_message("此指令僅在私訊中可用，請私訊機器人後再試！",
-                                                ephemeral=True)
-        return
-
-    command_lock[user_id] = True
-
-    try:
-        cursor.execute("SELECT spirit_stone FROM users WHERE user_id=?",
-                       (user_id, ))
-        result = cursor.fetchone()
-
-        if not result:
-            await interaction.response.send_message("請另尋財路，找不到你的帳戶。",
-                                                    ephemeral=True)
-            return
-
-        spirit_stone = result[0]
-        if spirit_stone < 10:
-            await interaction.response.send_message(
-                "你的靈石不足以參加遊戲，請確保有至少 10 靈石！", ephemeral=True)
-            return
-
-        answer = random.sample(range(1, 10), 4)
-        a, b, attempts = 0, 0, 0
-
-        await interaction.response.send_message(
-            "1A2B 遊戲開始！請輸入一個不重複的四位數字（每次限時 60 秒）。", ephemeral=True)
-
-        def check_guess(message: discord.Message):
-            return (message.author == interaction.user
-                    and message.channel == interaction.channel
-                    and len(message.content) == 4
-                    and message.content.isdigit()
-                    and len(set(message.content)) == 4)
-
-        while a != 4:
-            try:
-                guess_message = await bot.wait_for("message",
-                                                   timeout=60,
-                                                   check=check_guess)
-                user_guess = list(map(int, guess_message.content))
-                attempts += 1
-                a, b = 0, 0
-
-                for i in range(4):
-                    if user_guess[i] == answer[i]:
-                        a += 1
-                    elif user_guess[i] in answer:
-                        b += 1
-
-                await interaction.followup.send(f"{a}A{b}B", ephemeral=True)
-
-            except asyncio.TimeoutError:
-                await interaction.followup.send("操作超時，遊戲結束。", ephemeral=True)
-                command_lock[user_id] = False
-                return
-
-        new_spirit_stone = spirit_stone + 10
-        cursor.execute("UPDATE users SET spirit_stone=? WHERE user_id=?",
-                       (new_spirit_stone, user_id))
-        conn.commit()
-
-        await interaction.followup.send(
-            f"恭喜你答對了！答案是 {''.join(map(str, answer))}，總共猜了 {attempts} 次。\n靈石 +10，你現在有 {new_spirit_stone} 靈石！",
-            ephemeral=True,
-        )
-
-    except Exception as e:
-        print(f"發生錯誤: {e}")
-        await interaction.followup.send("發生錯誤，請稍後再試。", ephemeral=True)
-
-    finally:
-        command_lock[user_id] = False
+# ==================================================
+#                  📌 機器人啟動
+# ==================================================
 
 if __name__ == "__main__":
     keep_alive()
