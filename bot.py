@@ -387,8 +387,6 @@ async def 狀態(interaction: discord.Interaction):
     total_memory = memory_info.total // (1024 * 1024)
     used_memory = memory_info.used // (1024 * 1024)
 
-    instructions = len(synced)
-
     embed = discord.Embed(title="🌸小新#6500🌸",
                           description="版本:1.0.3",
                           color=discord.Color.pink())
