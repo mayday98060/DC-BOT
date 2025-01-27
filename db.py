@@ -32,8 +32,7 @@ def init_db():
         print("❌ MySQL 連線失敗，無法初始化資料庫！")
         return
 
-    cursor.execute("DROP TABLE IF EXISTS inventory;")
-    cursor.execute("DROP TABLE IF EXISTS users;")
+
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
