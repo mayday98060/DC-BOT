@@ -58,7 +58,7 @@ def init_db():
     conn.commit()
 
     cursor.execute('''
-        CREATE TABLE inventory (
+        CREATE TABLE  IF NOT EXISTS inventory (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT,                
             item_name VARCHAR(100),
