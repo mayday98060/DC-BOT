@@ -696,11 +696,13 @@ class 修煉View(discord.ui.View):
         result = cursor.fetchone()
         if not result:
             await interaction.response.send_message("❌ 你還沒有創建角色，請先入道！", ephemeral=True)
+            del self.active_sessions[self.user_id]
             return
         spirit_stone = result[0]
 
         if cost > 0 and spirit_stone < cost:
             await interaction.response.send_message("❌ 你的靈石不足，無法選擇此修練方式！", ephemeral=True)
+            del self.active_sessions[self.user_id]
             return
 
         if cost > 0:
