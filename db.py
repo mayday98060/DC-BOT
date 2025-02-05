@@ -35,40 +35,7 @@ def init_db():
     cursor.execute("DROP TABLE IF EXISTS inventory;")
     cursor.execute("DROP TABLE IF EXISTS users;")
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id BIGINT PRIMARY KEY,
-            spirit_stone INT DEFAULT 0,
-            last_draw DATETIME DEFAULT NULL,
-            last_checkin DATETIME DEFAULT NULL,
-            level VARCHAR(50) DEFAULT '凡人',
-            layer VARCHAR(50) DEFAULT '一層',
-            body_level VARCHAR(50) DEFAULT '凡人肉體',
-            body_layer VARCHAR(50) DEFAULT '一階',
-            attack INT DEFAULT 20,
-            health INT DEFAULT 100,
-            defense INT DEFAULT 10,
-            temp_attack INT DEFAULT 0,
-            temp_defense INT DEFAULT 0,
-            cultivation INT DEFAULT 0,
-            quench INT DEFAULT 0,
-            correct_answers INT DEFAULT 0
-        );
-    ''')
-    conn.commit()
 
-    cursor.execute('''
-        CREATE TABLE  IF NOT EXISTS inventory (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id BIGINT,                
-            item_name VARCHAR(100),
-            quantity INT DEFAULT 0,
-            effect TEXT,
-            use_restriction VARCHAR(50) DEFAULT 'both',
-            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        );
-    ''')
-    conn.commit()
     print("✅ 初始化資料庫完成！")
 
 def get_conn():
