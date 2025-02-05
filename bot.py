@@ -794,14 +794,21 @@ class 修仙群組(app_commands.Group):
 
         if existing_user:
             await interaction.response.send_message("你已經是修煉者，無需再次入道。")
-        else:
-            cursor.execute(
-                """INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, cultivation, quench) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                (user_id, 0, '凡人', '一層', '凡人肉體', '一階', 20, 100, 10, 0, 0)
-            )
-            conn.commit()
-            await interaction.response.send_message("歡迎您踏入修仙之旅，請試著摸索其他指令")
+            return
+
+        level_name = "凡人"
+        layer_name = "一層"
+        body_level_name = "凡人肉體"
+        body_layer_name = "一階"
+
+        cursor.execute(
+            """INSERT INTO users (user_id, spirit_stone, level, layer, body_level, body_layer, attack, health, defense, cultivation, quench, crit_rate, crit_damage) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (user_id, 0, level_name, layer_name, body_level_name, body_layer_name, 20, 100, 10, 0, 0, 5.00, 150.00)
+        )
+        conn.commit()
+
+        await interaction.response.send_message(f"✨ 歡迎踏入修仙之旅！\n你的初始境界為 **{level_name} {layer_name}**，請試著摸索其他指令。", ephemeral=True)
 
     @app_commands.command(name="感悟", description="每日簽到，獲得靈石獎勵！")
     async def 感悟(self, interaction: discord.Interaction):
