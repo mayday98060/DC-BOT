@@ -33,7 +33,7 @@ def init_db():
         return
     
     cursor.execute('''
-        CREATE TABLE users(
+        CREATE TABLE IF NOT EXISTS users(
             user_id BIGINT PRIMARY KEY,      -- 玩家 ID
             spirit_stone BIGINT DEFAULT 0,   -- 靈石數量
             last_draw DATE DEFAULT NULL,     -- 占卜時間（日期）
@@ -49,21 +49,15 @@ def init_db():
             quench BIGINT DEFAULT 0,         -- 煉體精華
             correct_answers BIGINT DEFAULT 0, -- 問答遊戲答對次數
             crit_rate DECIMAL(5,2) DEFAULT 5.00,  -- 基礎爆擊率（預設 5%）
-            crit_damage DECIMAL(5,2) DEFAULT 150.00  -- 基礎爆擊傷害（預設 150%）
+            crit_damage DECIMAL(5,2) DEFAULT 150.00,  -- 基礎爆擊傷害（預設 150%）
+            stamina INT DEFAULT 240,  -- 當前體力
+            last_stamina_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- 上次體力回復時間
         );
     ''')
     conn.commit()
     
     cursor.execute('''
-        ALTER TABLE users(
-            ADD COLUMN stamina INT DEFAULT 240,  -- 當前體力
-            ADD COLUMN last_stamina_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP;  -- 上次體力回復時間
-        );
-    ''')
-    conn.commit()    
-
-    cursor.execute('''
-        CREATE TABLE equipment (
+        CREATE TABLE IF NOT EXISTS equipment (
             equip_id INT AUTO_INCREMENT PRIMARY KEY,  -- 裝備 ID
             equip_name VARCHAR(100) UNIQUE,           -- 裝備名稱
             rarity VARCHAR(50) DEFAULT '普通',         -- 稀有度
@@ -81,7 +75,7 @@ def init_db():
     conn.commit()
 
     cursor.execute('''
-        CREATE TABLE items (
+        CREATE TABLE IF NOT EXISTS items (
             item_id INT AUTO_INCREMENT PRIMARY KEY,  -- 道具 ID
             item_name VARCHAR(100) UNIQUE,           -- 道具名稱
             category ENUM('消耗品', '食材', '材料', '藥材', '任務物品', '特殊', '丹藥') DEFAULT '消耗品',  -- 道具類型
@@ -95,7 +89,7 @@ def init_db():
     conn.commit()
 
     cursor.execute('''
-        CREATE TABLE user_equipment (
+        CREATE TABLE IF NOT EXISTS user_equipment (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT,                      -- 玩家 ID
             equip_id INT,                        -- 關聯 `equipment` 表
@@ -105,7 +99,19 @@ def init_db():
         );
     ''')
     conn.commit()
-    
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS inventory (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id BIGINT,                      -- 玩家 ID
+            item_id INT,                         -- 關聯 `items` 表
+            quantity INT DEFAULT 1,              -- 道具數量
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(item_id) ON DELETE CASCADE
+        );
+    ''')
+    conn.commit()
+
     print("✅ 初始化資料庫完成！")
 
 def get_conn():
