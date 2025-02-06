@@ -53,6 +53,13 @@ def init_db():
         );
     ''')
     conn.commit()
+cursor.execute('''
+    ALTER TABLE users(
+        ADD COLUMN stamina INT DEFAULT 240,  -- 當前體力
+        ADD COLUMN last_stamina_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP;  -- 上次體力回復時間
+   );
+    ''')
+conn.commit()    
 
     cursor.execute('''
         CREATE TABLE equipment (
